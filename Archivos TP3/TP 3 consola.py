@@ -9,47 +9,126 @@ from colorama import init, Fore, Back, Style
 class Productos():
 
     def __init__(self):
-        self.Cod = ''
+        self.Cod = -1
         self.Prod= ''
         self.Estado= 'A'
+    
+    def Alta(self):
+        tmp=self.Busqueda(self.Cod,'Cod','')
+        if(tmp=='I'):
+            self.Busqueda(self.Cod,'Cod','A')
+        elif(tmp=='A'):
+            return -1
+        elif(tmp==-1):
+            self.Formateo()
+            pickle.dump(self, ArcLogProd)
+            ArcLogProd.flush()
+            return 1
+    
+    def Formateo(self):
+        self.Prod = str(self.Prod)
+        self.Prod = self.Prod.ljust(7, ' ')
+        self.Estado = str(self.Estado)
+        self.Estado = self.Estado.ljust(1)
+        self.Cod = str(self.Cod)
+        self.Cod = self.Cod.ljust(1)
+
+    def Busqueda(self,p,x,e): # p= Lo que tiene que buscar / x= Si es 'Cod' o 'Prod' y e=Estado, se usa para cambiar u validar un estado
+        global ArcLogProd
+
+        t=os.path.getsize(ArcFisiProd)
+        ArcLogProd.seek(0)
+        while ArcLogProd.tell() < t:
+            Puntero=ArcLogProd.tell()
+            self=pickle.load(ArcLogProd)
+            if(x=='Prod'):
+                if(self.Prod.strip()==p):
+                    if(e!=''):
+                        self.Estado=e
+                        self.Formateo()
+                        ArcLogProd.seek(Puntero,0)
+                        pickle.dump(self, ArcLogProd)
+                        ArcLogProd.flush()
+                    return self.Estado
+            elif(x=='Cod'):
+                if(self.Cod==p):
+                    if(e!=''):
+                        self.Estado=e
+                        self.Formateo()
+                        ArcLogProd.seek(Puntero,0)
+                        pickle.dump(self, ArcLogProd)
+                        ArcLogProd.flush()
+                        return Puntero
+                    else:
+                        return self.Estado
+        return -1
+
+    def Valida_cod(self):
+        Cod=input(f"[V - Para volver al menú anterior] Ingrese el código del producto a seleccionar: {Style.RESET_ALL}").upper()
+        while (ValidarEnteros(Cod, 1, 5)) and (Cod!='V'):
+            Cod=input(f"{Fore.CYAN+Style.BRIGHT}[V - Para volver al menú anterior] {Fore.RED+Style.BRIGHT} Error, el producto que seleccionó no es válido. <Intentelo nuevamente>: {Style.RESET_ALL}").upper()
+        if(Cod=='V'):
+            return Cod
+        if(Cod == '1'):
+            self.Prod='CEBADA'
+        elif(Cod == '2'):
+            self.Prod='GIRASOL'
+        elif(Cod == '3'):
+            self.Prod='MAÍZ'
+        elif(Cod == '4'):
+            self.Prod='SOJA'
+        elif(Cod == '5'):
+            self.Prod='TRIGO'
+        self.Cod= str(Cod)
 
 class Cupo():
 
     def __init__(self):
         self.Patente = ''
-        self.Agno = 0
-        self.Mes = 0
-        self.Dia = 0
+        self.Fecha_Cupo = ''
         self.Estado = ''
         self.Cod = -1
         self.Bruto = 0
         self.Tara= 0
+    
+    def Formateo_Cupo(self):
+        self.Patente = str(self.Patente)
+        self.Patente = self.Patente.ljust(7, ' ')
+        self.Fecha_Cupo=self.Fecha_Cupo.strftime("%d/%m/%Y")
+        self.Fecha_Cupo = self.Fecha_Cupo.ljust(12, ' ')
+        self.Estado = str(self.Estado)
+        self.Estado = self.Estado.ljust(1)
+        self.Cod = str(self.Cod)
+        self.Cod = self.Cod.ljust(1)
+        self.Bruto = str(self.Bruto)
+        self.Bruto = self.Bruto.ljust(5, ' ')
+        self.Tara = str(self.Tara)
+        self.Tara = self.Tara.ljust(5, ' ')
 
-    def Busqueda_Cupos(self,Pat,Agno,Mes,Dia,Estado1,Estado2):
+    def Busqueda_Cupos(self,Pat,Fecha_Cupo,Estado1,Estado2):
         global ArcFisiOp, ArcLogOp
 
-        Agno,Mes,Dia = str(Agno),str(Mes),str(Dia)
         t=os.path.getsize(ArcFisiOp)
         ArcLogOp.seek(0)
-        Reg=Cupo()
         while ArcLogOp.tell() < t:
-            Reg=pickle.load(ArcLogOp)
-            if(Reg.Patente.strip()==Pat):
-                if(Reg.Agno==Agno) and (Reg.Mes==Mes) and (Reg.Dia==Dia):
+            self=pickle.load(ArcLogOp)
+            if(self.Patente.strip()==Pat):
+                Fecha=datetime.strptime(self.Fecha_Cupo, "%d/%m/%Y")
+                if(Fecha==Fecha_Cupo):
                     if(Estado1==''):
                         return -1 # Hay otro camión cargado
                     else:
-                        if(Reg.Estado==Estado1):
+                        if(self.Estado==Estado1):
                             if(Estado2!=''):
-                                Reg.Estado=Estado2
-                                Reg.Guardar_Cambios()
+                                self.Estado=Estado2
+                                self.Guardar_Cambios()
                                 return 2 # Todo ok y cambiado
                         else:
                             return 1 # Estado y fecha validados
     
     def Guardar_Cambios(self):
 
-        Formateo_Cupo(self)
+        self.Formateo_Cupo()
         with open(ArcFisiOp,"wb") as f:
             pickle.dump(self, f)
 
@@ -150,6 +229,17 @@ class RubrosxProd(): # Terminar
         # Pedir código del producto
         # Listar los rubros dependiendo del producto ingresado
         pass
+
+    def Formateo_Rubrosxprod(self):
+
+        self.CodR = str(self.CodR)
+        self.CodR = self.CodR.ljust(1)
+        self.CodP = str(self.CodP)
+        self.CodP = self.CodP.ljust(1)
+        self.ValMin = str(self.ValMin)
+        self.ValMin = self.ValMin.ljust(5)
+        self.ValMax = str(self.ValMax)
+        self.ValMax = self.ValMax.ljust(5)
 
 def ValidarEnteros(nro, min, max):
     try:
@@ -347,7 +437,6 @@ OPCION C - Alta de un rubro
                         Opci='V'
 
 def Asign_rub(): # Agregar bajas y modificaciones si queremos mejorarlo
-    global Cod
 
     Opci=''
     while(Opci!='V'):
@@ -371,53 +460,57 @@ OPCION D - Asignación de un rubro a un producto
                     res=RegRub.Busqueda('',CodR)
                 print()
                 Reg.CodR=CodR
-                #os.system("cls")
                 Listado_total()
                 print()
                 ArcLogRubros.seek(Puntero,0)
                 RegRub=pickle.load(ArcLogRubros)
-                print(f"A qué producto quiere asignarle el rubro \"{RegRub.Nombre}\"?: ")
+                print(f"A qué producto quiere asignarle el rubro \"{RegRub.Nombre.strip()}\"?: ")
                 print()
-                ValidarCod('C', 'G', 'M', 'S', 'T', 'V') # Revisar que haya que hacerlo con un código entero, no char
-                print()
-                print("El rubro esperará una respuesta de \"sí o no\" o un valor numérico?")
-                print("\'S\' para sí o no")
-                print("\'N\' para un valor numérico")
-                tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                while(tmp!='S') and (tmp!='N'):
+                Producto=Productos()
+                Cod=Producto.Valida_cod()
+                if(Cod!='V'):
+                    Reg.CodP=Producto.Cod
+                    print()
+                    print("El rubro esperará una respuesta de \"sí o no\" o un valor numérico?")
+                    print("\'S\' para sí o no")
+                    print("\'N\' para un valor numérico")
                     tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                if(tmp=='N'): # Num
-                    ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                    while(ValidarFloats(ValMin,0,100)):
+                    while(tmp!='S') and (tmp!='N'):
+                        tmp=input("¿Qué respuesta recibirá el rubro?").upper()
+                    if(tmp=='N'): # Num
                         ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                    Reg.ValMin=ValMin
-                    ValMax=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                    while(ValidarFloats(ValMax,0,100)):
-                        ValMax=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                    Reg.ValMax=ValMax
-                    print(f'''El rubro número {CodR} ha sido asignado correctamente al producto {Prod}!
+                        while(ValidarFloats(ValMin,0,100)):
+                            ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
+                        Reg.ValMin=ValMin
+                        ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
+                        while(ValidarFloats(ValMax,0,100)):
+                            ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
+                        Reg.ValMax=ValMax
+                        print(f'''El rubro número {CodR} ha sido asignado correctamente al producto {Producto.Prod}!
 Aceptará valores entre {ValMin} y {ValMax}.
 ''')
-                else: # BOOLEANA
-                    tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
-                    while(tmp!='S') and (tmp!='N'):
+                    else: # BOOLEANA
                         tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
-                    if(tmp=='N'):
-                        Reg.ValMax=0 # Ante "False" debería ser bueno el prooducto
-                        Reg.ValMin=-1
-                    else:
-                        Reg.ValMax=1 # Ante "True" debería ser bueno el prooducto
-                        Reg.ValMin=-1
-                # Formatear
-                Opci=''
-                while(Opci!='V') and (Opci!='S'):
-                    print('''
+                        while(tmp!='S') and (tmp!='N'):
+                            tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
+                        if(tmp=='N'):
+                            Reg.ValMax=0 # Ante "False" debería ser bueno el prooducto
+                            Reg.ValMin=-1
+                        else:
+                            Reg.ValMax=1 # Ante "True" debería ser bueno el prooducto
+                            Reg.ValMin=-1
+                    Reg.Formateo_Rubrosxprod()
+                    ArcLogRubrosXProd.seek(0,2)
+                    pickle.dump(Reg,ArcLogRubrosXProd)
+                    Opci=''
+                    while(Opci!='V') and (Opci!='S'):
+                        print('''
 ¿Qué desea hacer a continuación?
 
 \'S\' para seguir
 \'V\' para volver al menú anterior
 ''')
-                    Opci=input("Opción: ").upper()
+                        Opci=input("Opción: ").upper()
 
 def Alta_silo(): # Seguir
     Opci=''
@@ -480,42 +573,26 @@ def Valida_prod(Prod): # En desuso de momento
     except:
         return True
 
-def ValidarCod(l1, l2, l3, l4, l5 ,l6):
-    global Prod,Cod
-
-    Cod=input(f"[V - Para volver al menú anterior] Ingrese el código del producto a seleccionar: {Style.RESET_ALL}").upper()
-    while (Cod != l1) and (Cod != l2) and (Cod != l3) and (Cod != l4) and (Cod != l5) and (Cod != l6):
-        Cod=input(f"{Fore.CYAN+Style.BRIGHT}[V - Para volver al menú anterior] {Fore.RED+Style.BRIGHT} Error, el producto que seleccionó no es válido. <Intentelo nuevamente>: {Style.RESET_ALL}").upper()
-    if(Cod=='C'):
-        Prod='CEBADA'
-    elif(Cod=='G'):
-        Prod='GIRASOL'
-    elif(Cod=='M'):
-        Prod='MAÍZ'
-    elif(Cod=='S'):
-        Prod='SOJA'
-    elif(Cod=='T'):
-        Prod='TRIGO'
-
 def Listado_total():
+
     Productos = [
     {
         "Producto": "CEBADA",
-        "Código": "C",
+        "Código": "1",
     },
     {
         "Producto": "GIRASOL",
-        "Código": "G",
+        "Código": "2",
     },
     {
         "Producto": "MAÍZ",
-        "Código": "M",
+        "Código": "3",
     },    {
         "Producto": "SOJA",
-        "Código": "S",
+        "Código": "4",
     },    {
         "Producto": "TRIGO",
-        "Código": "T",
+        "Código": "5",
     },
 ]
 
@@ -524,45 +601,13 @@ def Listado_total():
     print("+--------------------+----------+")
     for p in Productos:
         Producto = p["Producto"]
-        Codi = p["Código"]
-        Muestra = "|{:<20}|{:>10}|".format(Producto, Codi)
+        Cod = p["Código"]
+        Muestra = "|{:<20}|{:>10}|".format(Producto, Cod)
         print(Muestra)
         print("+--------------------+----------+")
         print()
 
-def Busqueda_prod(p,x,e):
-    global ArcLogProd
-
-    t=os.path.getsize(ArcFisiProd)
-    ArcLogProd.seek(0)
-    Producto=Productos()
-    while ArcLogProd.tell() < t:
-        Puntero=ArcLogProd.tell()
-        Producto=pickle.load(ArcLogProd)
-        if(x=='Prod'):
-            if(Producto.Prod.strip()==p):
-                if(e!=''):
-                    Producto.Estado=e
-                    Formateo_Prod(Producto)
-                    ArcLogProd.seek(Puntero,0)
-                    pickle.dump(Producto, ArcLogProd)
-                    ArcLogProd.flush()
-                return Producto.Estado
-        elif(x=='Cod'):
-            if(Producto.Cod==p):
-                if(e!=''):
-                    Producto.Estado=e
-                    Formateo_Prod(Producto)
-                    ArcLogProd.seek(Puntero,0)
-                    pickle.dump(Producto, ArcLogProd)
-                    ArcLogProd.flush()
-                    return Puntero
-                else:
-                    return Producto.Estado
-    return -1
-
 def Alta_prod():
-    global Cod, Prod
 
     os.system("cls")
     print(f'''{Fore.CYAN+Style.BRIGHT}----------------------------------
@@ -573,24 +618,14 @@ OPCION A - Alta de un producto
         ArcLogProd.seek(0)
         Producto=Productos()
         Listado_total()
-        ValidarCod('C', 'G', 'M', 'S', 'T', 'V')
+        Cod=Producto.Valida_cod()
         if(Cod!='V'):
-            res=Busqueda_prod(Prod,'Prod','')
-            if(res==-1):
-                Producto.Prod=Prod
-                Producto.Cod=Cod
-                Formateo_Prod(Producto)
-                pickle.dump(Producto, ArcLogProd)
-                ArcLogProd.flush()
+            Cod=Producto.Alta()
+            if(Cod==1):
                 print()
                 print("Producto cargado correctamente!")
                 print()
-            elif(res=='I'):
-                Busqueda_prod(Cod,'Cod','A')
-                print()
-                print("Producto cargado correctamente!")
-                print()
-            else:
+            elif(Cod==-1):
                 print()
                 print("El producto ya se encuentra cargado!")
                 print()
@@ -602,7 +637,6 @@ OPCION A - Alta de un producto
             os.system("cls")
 
 def Baja_prod():
-    global Prod, Cod
     
     os.system("cls")
     print(f'''{Fore.CYAN+Style.BRIGHT}-------------------------------
@@ -614,12 +648,15 @@ OPCION B - Baja de un producto
     else:
         Cod=''
         while(Cod!='V'):
+            Producto=Productos()
             print()
             Consulta_Prod()
             print()
-            ValidarCod('C', 'G', 'M', 'S', 'T', 'V')
+            Cod=input(f"[V - Para volver al menú anterior] Ingrese el código del producto a seleccionar: {Style.RESET_ALL}").upper()
+            while (ValidarEnteros(Cod, 1, 5)) and (Cod!='V'):
+                Cod=input(f"{Fore.CYAN+Style.BRIGHT}[V - Para volver al menú anterior] {Fore.RED+Style.BRIGHT} Error, el producto que seleccionó no es válido. <Intentelo nuevamente>: {Style.RESET_ALL}").upper()
             if(Cod!='V'):
-                res=Busqueda_prod(Cod,'Cod','I')
+                res=Producto.Busqueda(Cod,'Cod','I')
                 if(res == -1):
                     print("El producto no se encontró en la lista!")
                 else:
@@ -649,7 +686,6 @@ def Consulta_Prod():
                 print("+--------------------+----------+")
 
 def Modificar_prod():
-    global Prod, Cod, Productos
 
     os.system("cls")
     print(f'''{Fore.CYAN+Style.BRIGHT}----------------------------------------
@@ -664,37 +700,36 @@ OPCION M - Modificación de un producto
             print()
             Consulta_Prod()
             print()
-            ValidarCod('C', 'G', 'M', 'S', 'T', 'V')
+            Producto=Productos()
+            Cod=Producto.Valida_cod()
             if(Cod!='V'):
-                res=Busqueda_prod(Cod,'Cod','')
+                res=Producto.Busqueda(Cod,'Cod','')
                 if(res == -1): # Verifica que no esté cargado
                     print("El producto no se encontró en la lista!")
                     Cod=input('[V para salir] - Enter para  intentarlo nuevamente: ')
+                    os.system("cls")
                 elif(res ==  'I'):
                     print("El producto seleccionado ha sido dado de baja!")
                 else:
-                    CodAux=Cod
-                    ProdAux=Prod
-                    print(f"A continuación, seleccione el producto por el cuál desea sustituir {Prod}")
+                    CodAux=Productos.Cod
+                    ProdAux=Productos.Prod
+                    print(f"A continuación, seleccione el producto por el cuál desea sustituir {Productos.Prod}")
                     print()
                     Listado_total()
-                    ValidarCod('C', 'G', 'M', 'S', 'T', 'V')
+                    Cod=Producto.Valida_cod()
                     if(Cod!='V'):
-                        res=Busqueda_prod(Cod,'Cod','')
+                        res=Producto.Busqueda(Producto.Cod,'Cod','')
                         if(res == -1): # Verifica que el segundo no esté cargado
-                            Busqueda_prod(CodAux,'Cod','I') # Da de baja el primer producto
-                            Producto=Productos()
-                            Producto.Prod=Prod
-                            Producto.Cod=Cod
-                            Formateo_Prod(Producto)
+                            Producto.Busqueda(CodAux,'Cod','I') # Da de baja el primer producto
+                            Producto.Formateo()
                             pickle.dump(Producto, ArcLogProd)
                             ArcLogProd.flush()
                             print("Producto modificado correctamente!")
                             Cod=input("[V - Para volver al menú anterior] - Enter para modificar otro producto: ").upper()
                             os.system("cls")
                         elif(res=='I'):
-                            Busqueda_prod(Cod,'Cod','A')
-                            Busqueda_prod(CodAux,'Cod','I')
+                            Producto.Busqueda(Cod,'Cod','A')
+                            Producto.Busqueda(CodAux,'Cod','I')
                         else:
                             print()
                             print(f"El producto por el que desea sustituir {ProdAux} ya se encuentra cargado.")
@@ -713,8 +748,8 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
             os.system('cls')
             Patente=ValidarPat()
         if(Patente!='V'):
-            Val_Fecha()
-            if(RegCup.Busqueda_Cupos(Patente,Agno,Mes,Dia,'','')==-1):
+            Fecha_Cupo=Val_Fecha()
+            if(RegCup.Busqueda_Cupos(Patente,Fecha_Cupo,'','')==-1):
                 input("Cupo ya otorgado <Enter para volver al menú principal>")
                 Patente='V'
             else:
@@ -724,25 +759,25 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
                 Consulta_Prod()
                 print()
                 CodP=input("[V - Para volver al menú principal] - Ingrese el código del producto que cargará: ").upper()
-                res=Busqueda_prod(CodP,'Cod','')
-                while(res==-1):
+                Producto=Productos()
+                res=Producto.Busqueda(CodP,'Cod','')
+                while(res!='A'):
                     if(CodP=='V'):
                         Patente='V'
                         res=0
                     else:
-                        print("Error, el código de producto seleccionado no está cargado!")
+                        print("Error, el producto seleccionado no está cargado!")
                         CodP=input("[V - Para volver al menú principal] - Ingrese el código del producto que cargará: ").upper()
-                        res=Busqueda_prod(CodP,'Cod','')
+                        res=Producto.Busqueda(CodP,'Cod','')
                 print()
                 if(CodP!='V'):
-                    Revisión_cupo_creado(Patente,CodP,Agno,Mes,Dia)
+                    Revisión_cupo_creado(Patente,CodP,Fecha_Cupo)
                     print()
                     RegCup.Patente=Patente
                     RegCup.Cod=CodP
-                    RegCup.Agno=Agno
-                    RegCup.Mes=Mes
-                    RegCup.Dia=Dia
+                    RegCup.Fecha_Cupo = Fecha_Cupo
                     RegCup.Estado='P'
+                    RegCup.Formateo_Cupo()
                     Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
                     while(Confir!='Y') and (Confir!='N'):
                         Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
@@ -760,7 +795,7 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
                     else:
                         pass # Opción de modificar la carga?
                 
-def Revisión_cupo_creado(Patente,CodP,Agno,Mes,Dia):
+def Revisión_cupo_creado(Patente,CodP,Fecha_Cupo):
     os.system("cls")
     Datos = [
     {
@@ -773,7 +808,7 @@ def Revisión_cupo_creado(Patente,CodP,Agno,Mes,Dia):
     },
     {
         "Dato": "Fecha",
-        "Valor": f"{Dia}/{Mes}/{Agno}",
+        "Valor": Fecha_Cupo.strftime("%d/%m/%Y"),
     }
 ]
 
@@ -788,36 +823,7 @@ def Revisión_cupo_creado(Patente,CodP,Agno,Mes,Dia):
         print("+--------------------+----------+")
         print()
 
-def Formateo_Prod(vrProd):
-
-    vrProd.Prod = str(vrProd.Prod)
-    vrProd.Prod = vrProd.Prod.ljust(7, ' ')
-    vrProd.Estado = str(vrProd.Estado)
-    vrProd.Estado = vrProd.Estado.ljust(1)
-    vrProd.Cod = str(vrProd.Cod)
-    vrProd.Cod = vrProd.Cod.ljust(1)
-
-def Formateo_Cupo(vrCup):
-
-    vrCup.Patente = str(vrCup.Patente)
-    vrCup.Patente = vrCup.Patente.ljust(7, ' ')
-    vrCup.Agno = str(vrCup.Agno)
-    vrCup.Agno = vrCup.Agno.ljust(4, ' ')
-    vrCup.Mes = str(vrCup.Mes)
-    vrCup.Mes = vrCup.Mes.ljust(1, ' ')
-    vrCup.Dia = str(vrCup.Dia)
-    vrCup.Dia = vrCup.Dia.ljust(2, ' ')
-    vrCup.Estado = str(vrCup.Estado)
-    vrCup.Estado = vrCup.Estado.ljust(1)
-    vrCup.Cod = str(vrCup.Cod)
-    vrCup.Cod = vrCup.Cod.ljust(1)
-    vrCup.Bruto = str(vrCup.Bruto)
-    vrCup.Bruto = vrCup.Bruto.ljust(5, ' ')
-    vrCup.Tara = str(vrCup.Tara)
-    vrCup.Tara = vrCup.Tara.ljust(5, ' ')
-
 def Val_Fecha():
-    global Agno, Mes, Dia
 
     os.system("cls")
     now= datetime.now()
@@ -864,7 +870,10 @@ def Val_Fecha():
         min=1
     while ValidarEnteros(Dia,min,max):
         Dia=input(f"[De {min} a {max}] Error, ingrese el día de llegada del camión: ")
-    Dia=int(Dia)
+    Agno,Mes,Dia = str(Agno),str(Mes),str(Dia)
+    Fecha=(f"{Dia}/{Mes}/{Agno}")
+    Fecha_Cupo = datetime.strptime(Fecha, "%d/%m/%Y")
+    return Fecha_Cupo
 
 def Recepción():
 
