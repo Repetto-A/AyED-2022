@@ -4,6 +4,7 @@ import os, pickle, os.path,sys,datetime,io
 from re import A
 from datetime import date
 from datetime import datetime
+from urllib.parse import parse_qs
 from colorama import init, Fore, Back, Style
 
 class Productos():
@@ -94,8 +95,6 @@ class Cupo():
     def Formateo_Cupo(self):
         self.Patente = str(self.Patente)
         self.Patente = self.Patente.ljust(7, ' ')
-        self.Fecha_Cupo=self.Fecha_Cupo.strftime("%d/%m/%Y")
-        self.Fecha_Cupo = self.Fecha_Cupo.ljust(12, ' ')
         self.Estado = str(self.Estado)
         self.Estado = self.Estado.ljust(1)
         self.Cod = str(self.Cod)
@@ -104,16 +103,20 @@ class Cupo():
         self.Bruto = self.Bruto.ljust(5, ' ')
         self.Tara = str(self.Tara)
         self.Tara = self.Tara.ljust(5, ' ')
+        if(isinstance(self.Fecha_Cupo,str)==False):
+            self.Fecha_Cupo=self.Fecha_Cupo.strftime("%d/%m/%Y")
+            self.Fecha_Cupo = self.Fecha_Cupo.ljust(12, ' ')
 
     def Busqueda_Cupos(self,Pat,Fecha_Cupo,Estado1,Estado2):
-        global ArcFisiOp, ArcLogOp
+        global ArcFisiOp, ArcLogOp, Puntero
 
         t=os.path.getsize(ArcFisiOp)
         ArcLogOp.seek(0)
         while ArcLogOp.tell() < t:
+            Puntero=ArcLogOp.tell()
             self=pickle.load(ArcLogOp)
             if(self.Patente.strip()==Pat):
-                Fecha=datetime.strptime(self.Fecha_Cupo, "%d/%m/%Y")
+                Fecha=datetime.strptime(self.Fecha_Cupo.strip(), "%d/%m/%Y")
                 if(Fecha==Fecha_Cupo):
                     if(Estado1==''):
                         return -1 # Hay otro camión cargado
@@ -121,16 +124,162 @@ class Cupo():
                         if(self.Estado==Estado1):
                             if(Estado2!=''):
                                 self.Estado=Estado2
-                                self.Guardar_Cambios()
                                 return 2 # Todo ok y cambiado
+                            else:
+                                return 1 # Estado y fecha validados
                         else:
-                            return 1 # Estado y fecha validados
+                            return -3 # Existe pero no es del estado que fue pasado como parametro
+        return -2
     
-    def Guardar_Cambios(self):
+    def Rechazados(self,Fecha_Dada):
 
-        self.Formateo_Cupo()
-        with open(ArcFisiOp,"wb") as f:
-            pickle.dump(self, f)
+        t=os.path.getsize(ArcFisiOp)
+        ArcLogOp.seek(0)
+        Lista_pat=[]
+        while ArcLogOp.tell() < t:
+            Puntero=ArcLogOp.tell()
+            self=pickle.load(ArcLogOp)
+            Fecha=datetime.strptime(self.Fecha_Cupo.strip(), "%d/%m/%Y")
+            if(Fecha==Fecha_Dada) and (self.Estado=='R'):
+                Lista_pat.append(self.Patente.strip())
+        return Lista_pat
+
+    
+    def Conteo(self):
+        global CantCupos,CantRec,ContCebada,ContGirasol,ContMaiz,ContSoja,ContTrigo,MayorDescCeb,MenorDescCeb,MayorDescGir,MenorDescGir,MayorDescMaiz,MenorDescMaiz,MayorDescSoja,MenorDescSoja,MayorDescTrigo,MenorDescTrigo,MenorDescTrigo,PromCamCeb,PromCamGir,PromCamMaiz,PromCamSoja,PromCamTrigo,AcumCeb,AcumGir,AcumMaiz,AcumSoja,AcumTrigo,PatMayCeb,PatMenCeb,PatMayGir,PatMenGir,PatMayMaiz,PatMenMaiz,PatMaySoja,PatMenSoja,PatMayTrigo,PatMenTrigo
+
+        t=os.path.getsize(ArcFisiOp)
+        ArcLogOp.seek(0)
+        PatMayCeb = 'No fue cargado'
+        PatMenCeb = 'No fue cargado'
+        PatMayGir = 'No fue cargado'
+        PatMenGir = 'No fue cargado'
+        PatMayMaiz = 'No fue cargado'
+        PatMenMaiz = 'No fue cargado'
+        PatMaySoja = 'No fue cargado'
+        PatMenSoja = 'No fue cargado'
+        PatMayTrigo = 'No fue cargado'
+        PatMenTrigo = 'No fue cargado'
+        CantCupos=0
+        CantRec=0
+        ContCebada=0
+        ContGirasol=0
+        ContMaiz=0
+        ContSoja=0
+        ContTrigo=0
+        MayorDescCeb=0
+        MayorDescGir=0
+        MayorDescMaiz=0
+        MayorDescSoja=0
+        MayorDescTrigo=0
+        PromCamCeb=0
+        PromCamGir=0
+        PromCamMaiz=0
+        PromCamSoja=0
+        PromCamTrigo=0
+        AcumCeb=0
+        AcumGir=0
+        AcumMaiz=0
+        AcumSoja=0
+        AcumTrigo=0
+        while ArcLogOp.tell() < t:
+            self=pickle.load(ArcLogOp)
+            if(self.Estado!=''):
+                CantCupos+=1
+                if(self.Estado!='P'):
+                    CantRec+=1
+                    if(self.Cod=='1'):
+                        PnCamCeb= int(self.Bruto) - int(self.Tara)
+                        AcumCeb=AcumCeb + PnCamCeb
+                        ContCebada+=1
+                        if(ContCebada==1):
+                            MenorDescCeb= PnCamCeb
+                            MayorDescCeb= PnCamCeb
+                            PatMayCeb=self.Patente.strip()
+                            PatMenCeb=self.Patente.strip()
+                        else:
+                            if(PnCamCeb<MenorDescCeb):
+                                MenorDescCeb= PnCamCeb
+                                PatMenCeb=self.Patente.strip()
+                            if(PnCamCeb>MayorDescCeb):
+                                MayorDescCeb= PnCamCeb
+                                PatMayCeb=self.Patente.strip()
+                    elif(self.Cod=='2'):
+                        PnCamGir= int(self.Bruto) - int(self.Tara)
+                        AcumGir=AcumGir + PnCamGir
+                        ContGirasol+=1
+                        if(ContGirasol==1):
+                            MenorDescGir= PnCamGir
+                            MayorDescGir= PnCamGir
+                            PatMayGir=self.Patente.strip()
+                            PatMenGir=self.Patente.strip()
+                        else:
+                            if(PnCamGir<MenorDescGir):
+                                MenorDescGir= PnCamGir
+                                PatMenGir=self.Patente.strip()
+                            if(PnCamGir>MayorDescGir):
+                                MayorDescGir= PnCamGir
+                                PatMayGir=self.Patente.strip()
+                    elif(self.Cod=='3'):
+                        PnCamMaiz= int(self.Bruto) - int(self.Tara)
+                        AcumMaiz=AcumMaiz + PnCamMaiz
+                        ContMaiz+=1
+                        MenorDescMaiz= PnCamMaiz
+                        if(ContMaiz==1):
+                            MenorDescMaiz= PnCamMaiz
+                            MayorDescMaiz= PnCamMaiz
+                            PatMayMaiz=self.Patente.strip()
+                            PatMenMaiz=self.Patente.strip()
+                        else:
+                            if(PnCamMaiz<MenorDescMaiz):
+                                MenorDescMaiz= PnCamMaiz
+                                PatMenMaiz=self.Patente.strip()
+                            if(PnCamMaiz>MayorDescMaiz):
+                                MayorDescMaiz= PnCamMaiz
+                                PatMayMaiz=self.Patente.strip()
+                    elif(self.Cod=='4'):
+                        PnCamSoja= int(self.Bruto) - int(self.Tara)
+                        AcumSoja=AcumSoja + PnCamSoja
+                        ContSoja+=1
+                        if(ContSoja==1):
+                            MenorDescSoja= PnCamSoja
+                            MayorDescSoja= PnCamSoja
+                            PatMaySoja=self.Patente.strip()
+                            PatMenSoja=self.Patente.strip()
+                        else:
+                            if(PnCamSoja<MenorDescSoja):
+                                MenorDescSoja= PnCamSoja
+                                PatMenSoja=self.Patente.strip()
+                            if(PnCamSoja>MayorDescSoja):
+                                MayorDescSoja= PnCamSoja
+                                PatMaySoja=self.Patente.strip()
+                    elif(self.Cod=='5'):
+                        PnCamTrigo= int(self.Bruto) - int(self.Tara)
+                        AcumTrigo= AcumTrigo + PnCamTrigo
+                        ContTrigo+=1
+                        if(ContTrigo==1):
+                            MenorDescTrigo= PnCamTrigo
+                            MayorDescTrigo= PnCamTrigo
+                            PatMayTrigo=self.Patente.strip()
+                            PatMenTrigo=self.Patente.strip()
+                        else:
+                            if(PnCamTrigo<MenorDescTrigo):
+                                MenorDescTrigo= PnCamTrigo
+                                PatMenTrigo=self.Patente.strip()
+                            if(PnCamTrigo>MayorDescTrigo):
+                                MayorDescTrigo= PnCamTrigo
+                                PatMayTrigo=self.Patente.strip()
+        if(ContCebada!=0):
+            PromCamCeb=AcumCeb/ContCebada
+        if(ContGirasol!=0):
+            PromCamGir=AcumGir/ContGirasol
+        if(ContMaiz!=0):
+            PromCamMaiz=AcumMaiz/ContMaiz
+        if(ContSoja!=0):
+            PromCamSoja=AcumSoja/ContSoja
+        if(ContTrigo!=0):
+            PromCamTrigo=AcumTrigo/ContTrigo
+        
 
 class Rubros():
 
@@ -138,7 +287,6 @@ class Rubros():
         self.CodR = -1
         self.Nombre = ''
     
-
     def Val_nombre(self):
         
         Nom=str(input(Fore.CYAN+Style.BRIGHT+'\n[V- Para volver al menú anterior] <Hasta 30 carácteres> Ingrese el nombre del rubro: ').capitalize())
@@ -152,12 +300,13 @@ class Rubros():
     def Alta(self,NombreR,CodR):
         pos=self.Busqueda(NombreR,CodR)
         if(pos==-1):
-            ArcLogRubros.seek(0)
+            ArcLogRubros.seek(0,2)
             self.Nombre=NombreR
             self.CodR=CodR
             self.Formateo()
             pickle.dump(self, ArcLogRubros)
             ArcLogRubros.flush()
+            Ordenamiento()
             return -1 # No están en uso
         elif(pos==1):
             return 1 # Ya está cargado exactamente igual
@@ -196,7 +345,7 @@ class Rubros():
         t=os.path.getsize(ArcFisiRubros)
         ArcLogRubros.seek(0)
         while ArcLogRubros.tell() < t:
-            Puntero=ArcLogRubros.tell() #Lo dejé por si se usa a futuro
+            Puntero=ArcLogRubros.tell()
             self=pickle.load(ArcLogRubros)
             if(self.CodR.strip() == Cod):
                 if(self.Nombre.strip() == Nom):
@@ -208,7 +357,31 @@ class Rubros():
 
         return -1 #No hay coincidencias
 
-class Silos(): # Terminar
+    def Dico(self,CodR):
+        CodR=int(CodR)
+        ArcLogRubros.seek(0, 0)
+        aux = pickle.load(ArcLogRubros)
+        tamReg = ArcLogRubros.tell()
+        cantReg = int(os.path.getsize(ArcFisiRubros) / tamReg)
+        inferior = 0
+        superior = cantReg-1
+        medio = (inferior + superior) // 2
+        ArcLogRubros.seek(medio*tamReg, 0)
+        self = pickle.load(ArcLogRubros)
+        while int(self.CodR) != CodR and (inferior < superior):
+            if CodR < int(self.CodR):
+                superior = medio - 1
+            else:
+                inferior = medio + 1
+            medio = (inferior + superior) // 2
+            ArcLogRubros.seek(medio*tamReg, 0)
+            self = pickle.load(ArcLogRubros)
+        if int(self.CodR) == CodR:
+            return medio*tamReg
+        else:
+            return -1
+
+class Silos():
     
     def __init__(self):
         self.CodS= 0
@@ -216,20 +389,53 @@ class Silos(): # Terminar
         self.CodP=0
         self.Stock=0
 
-class RubrosxProd(): # Terminar
+    def MayorStock(self):
+        t=os.path.getsize(ArcFisiSilos)
+        ArcLogSilos.seek(0)
+        Acum=0
+        MayorStock=''
+        while ArcLogSilos.tell() < t:
+            Puntero=ArcLogSilos.tell()
+            self=pickle.load(ArcLogSilos)
+            Stock=int(self.Stock.strip())
+            if(Stock>Acum):
+                Acum=Stock
+                MayorStock=self.Nombre.strip()
+        return MayorStock
+
+    def Busqueda(self,CodS,CodP):
+        global ArcFisiSilos, Puntero
+
+        t=os.path.getsize(ArcFisiSilos)
+        ArcLogSilos.seek(0)
+        while ArcLogSilos.tell() < t:
+            Puntero=ArcLogSilos.tell()
+            self=pickle.load(ArcLogSilos)
+            if(self.CodS.strip() == CodS):
+                return self.Nombre # Código de silo usado
+            elif(self.CodP==CodP):
+                return 1 # Ya hay un silo con ese CodP
+
+        return -1 #No hay coincidencias
+    
+    def Formateo(self):
+        self.CodS = str(self.CodS)
+        self.CodS = self.CodS.ljust(1)
+        self.CodP = str(self.CodP)
+        self.CodP = self.CodP.ljust(1)
+        self.Stock = str(self.Stock)
+        self.Stock = self.Stock.ljust(5)
+        self.Nombre = str(self.Nombre)
+        self.Nombre = self.Nombre.ljust(13, ' ')
+
+class RubrosxProd(): # Revisar que esté bien
     
     def __init__(self):
-        self.CodR = 0            # Ej 1 Humedad, 2 Girasol, 3 Maíz, 4 Soja y 5 Trigo
-        self.CodP = 0            # Ej 1 Cebada, 2 Girasol, 3 Maíz, 4 Soja y 5 Trigo
+        self.CodR = 0
+        self.CodP = 0
         self.ValMin = 0.0
         self.ValMax = 100.0
     
-
-    def Alta(self):
-        # Pedir código del producto
-        # Listar los rubros dependiendo del producto ingresado
-        pass
-
     def Formateo_Rubrosxprod(self):
 
         self.CodR = str(self.CodR)
@@ -266,17 +472,16 @@ def ValidarPat():
 def Pantalla():
 	os.system('cls')
 	print(f'''{Fore.CYAN+Style.BRIGHT}---------------MENÚ PRINCIPAL---------------''')
-	print(f'''{Style.RESET_ALL}\n1- Administraciones
-2- Entrega de cupos
-3- Recepción
-4- Registrar calidad
-5- Registrar peso bruto
-6- Registrar descarga
-7- Registrar tara
-8- Reportes
-9- Listado de silos y rechazos
-0- Fin del programa
-
+	print(f'''{Style.RESET_ALL}\n 1- Administraciones
+ 2- Entrega de cupos
+ 3- Recepción
+ 4- Registrar calidad
+ 5- Registrar peso bruto
+ 6- Registrar descarga
+ 7- Registrar tara
+ 8- Reportes
+ 9- Listado de silos y rechazos
+ 0- Fin del programa
 {Fore.CYAN+Style.BRIGHT}--------------------------------------------{Style.RESET_ALL}''')
 
 def Pantalla_Admin():
@@ -294,10 +499,12 @@ V- Volver al MENU PRINCIPAL
 {Fore.CYAN+Style.BRIGHT}---------------------------------------------{Style.RESET_ALL}''')
 
 def Inicializar():
-    global ArcFisiProd, ArcLogOp, ArcFisiOp, ArcLogRubros, ArcFisiRubros, ArcLogRubrosXProd, ArcFisiRubrosXProd, ArcLogSilos, ArcFisiSilos, ArcLogProd
+    global ArcFisiProd, ArcLogOp, ArcFisiOp, ArcLogRubros, ArcFisiRubros, ArcLogRubrosXProd, ArcFisiRubrosXProd, ArcLogSilos, ArcFisiSilos, ArcLogProd, Fecha_Actual
 
     init(autoreset=True)
-
+    now=datetime.now()
+    Fecha=(f"{now.day}/{now.month}/{now.year}")
+    Fecha_Actual = datetime.strptime(Fecha, "%d/%m/%Y")
     ArcFisiOp = 'D:\Archivos_tp\OPERACIONES.DAT'
     if not os.path.exists(ArcFisiOp):
         ArcLogOp = open(ArcFisiOp, "w+b")
@@ -451,76 +658,115 @@ OPCION D - Asignación de un rubro a un producto
                 RegRub.Listado()
                 print()
                 CodR=input("Ingrese el código del rubro que desea asignar a un producto: ")
-                res=RegRub.Busqueda('',CodR)
-                while(res==-1):
-                    os.system("cls")
-                    RegRub.Listado()
-                    print()
-                    CodR=input("El código ingresado no le pertenece a ningún rubro, inténtelo nuevamente: ")
+                if(CodR=='V'):
+                    Opci='V'
+                else:
                     res=RegRub.Busqueda('',CodR)
-                print()
-                Reg.CodR=CodR
-                Listado_total()
-                print()
-                ArcLogRubros.seek(Puntero,0)
-                RegRub=pickle.load(ArcLogRubros)
-                print(f"A qué producto quiere asignarle el rubro \"{RegRub.Nombre.strip()}\"?: ")
-                print()
-                Producto=Productos()
-                Cod=Producto.Valida_cod()
-                if(Cod!='V'):
-                    Reg.CodP=Producto.Cod
+                    while(res==-1):
+                        os.system("cls")
+                        RegRub.Listado()
+                        print()
+                        CodR=input("El código ingresado no le pertenece a ningún rubro, inténtelo nuevamente: ")
+                        res=RegRub.Busqueda('',CodR)
                     print()
-                    print("El rubro esperará una respuesta de \"sí o no\" o un valor numérico?")
-                    print("\'S\' para sí o no")
-                    print("\'N\' para un valor numérico")
-                    tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                    while(tmp!='S') and (tmp!='N'):
+                    Reg.CodR=CodR
+                    Listado_total()
+                    print()
+                    ArcLogRubros.seek(Puntero,0)
+                    RegRub=pickle.load(ArcLogRubros)
+                    print(f"A qué producto quiere asignarle el rubro \"{RegRub.Nombre.strip()}\"?: ")
+                    print()
+                    Producto=Productos()
+                    Cod=Producto.Valida_cod()
+                    if(Cod!='V'):
+                        Reg.CodP=Producto.Cod
+                        print()
+                        print("El rubro esperará una respuesta de \"sí o no\" o un valor numérico?")
+                        print("\'S\' para sí o no")
+                        print("\'N\' para un valor numérico")
                         tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                    if(tmp=='N'): # Num
-                        ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                        while(ValidarFloats(ValMin,0,100)):
+                        while(tmp!='S') and (tmp!='N'):
+                            tmp=input("¿Qué respuesta recibirá el rubro?").upper()
+                        if(tmp=='N'): # Num
                             ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                        Reg.ValMin=ValMin
-                        ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
-                        while(ValidarFloats(ValMax,0,100)):
+                            while(ValidarFloats(ValMin,0,100)):
+                                ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
+                            Reg.ValMin=ValMin
                             ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
-                        Reg.ValMax=ValMax
-                        print(f'''El rubro número {CodR} ha sido asignado correctamente al producto {Producto.Prod}!
+                            while(ValidarFloats(ValMax,0,100)):
+                                ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
+                            Reg.ValMax=ValMax
+                            print(f'''El rubro número {CodR} ha sido asignado correctamente al producto {Producto.Prod}!
 Aceptará valores entre {ValMin} y {ValMax}.
 ''')
-                    else: # BOOLEANA
-                        tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
-                        while(tmp!='S') and (tmp!='N'):
+                        else: # BOOLEANA
                             tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
-                        if(tmp=='N'):
-                            Reg.ValMax=0 # Ante "False" debería ser bueno el prooducto
-                            Reg.ValMin=-1
-                        else:
-                            Reg.ValMax=1 # Ante "True" debería ser bueno el prooducto
-                            Reg.ValMin=-1
-                    Reg.Formateo_Rubrosxprod()
-                    ArcLogRubrosXProd.seek(0,2)
-                    pickle.dump(Reg,ArcLogRubrosXProd)
-                    Opci=''
-                    while(Opci!='V') and (Opci!='S'):
-                        print('''
+                            while(tmp!='S') and (tmp!='N'):
+                                tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
+                            if(tmp=='N'):
+                                Reg.ValMax=0 # Ante "False" debería ser bueno el prooducto
+                                Reg.ValMin=-1
+                            else:
+                                Reg.ValMax=1 # Ante "True" debería ser bueno el prooducto
+                                Reg.ValMin=-1
+                        Reg.Formateo_Rubrosxprod()
+                        ArcLogRubrosXProd.seek(0,2)
+                        pickle.dump(Reg,ArcLogRubrosXProd)
+                        ArcLogRubrosXProd.flush()
+                        Opci=''
+                        while(Opci!='V') and (Opci!='S'):
+                            print('''
 ¿Qué desea hacer a continuación?
 
 \'S\' para seguir
 \'V\' para volver al menú anterior
 ''')
-                        Opci=input("Opción: ").upper()
+                            Opci=input("Opción: ").upper()
 
-def Alta_silo(): # Seguir
+def Alta_silo(): # Agregar bajas y modificaciones si queremos mejorarlo
     Opci=''
     while(Opci!='V'):
         os.system("cls")
         print(f'''{Fore.CYAN+Style.BRIGHT}----------------------------------
 OPCION E - Alta de un silo
 ----------------------------------{Style.RESET_ALL}''')
+        print('¿Qué producto almacenará el silo?')
+        print()
         Listado_total()
-        Opci=input('[V Para volver al menú de Administraciones] - ¿Para qué producto desea cargar un rubro?').upper()
+        Producto=Productos()
+        Silo=Silos()
+        print()
+        Opci=Producto.Valida_cod()
+        if(Opci!='V'):
+            tmp=Silo.Busqueda('',Producto.Cod)
+            if(tmp==-1):
+                Silo.Nombre=(f"Silo {Producto.Prod.capitalize()}")
+                CodS=input(f"<Valor entero de hasta 2 cifras> - ¿Qué código desea asignarle a \"{Silo.Nombre}\"?: ")
+                while(ValidarEnteros(CodS,0,99)):
+                    CodS=input("<Valor entero de hasta 2 cifras> - ¿Qué código desea asignarle al silo?: ").upper()
+                tmp=Silo.Busqueda(CodS,Producto.Cod)
+                while(tmp!=-1):
+                    print(f"El código seleccionado ya ha sido utilizado para \"{tmp.strip()}\".")
+                    CodS=input(f"<Valor entero de hasta 2 cifras> - ¿Qué código desea asignarle a \"{Silo.Nombre}\"?: ")
+                    while(ValidarEnteros(CodS,0,99)):
+                        CodS=input("<Valor entero de hasta 2 cifras> - ¿Qué código desea asignarle al silo?: ").upper()
+                    tmp=Silo.Busqueda(CodS,Producto.Cod)
+                Silo.CodS=CodS
+                Silo.CodP=Producto.Cod
+                Silo.Formateo()
+                ArcLogSilos.seek(0,2)
+                pickle.dump(Silo,ArcLogSilos)
+                ArcLogSilos.flush()
+                print()
+                print("Silo cargado correctamente!")
+            elif(tmp==1):
+                print("Ya hay un silo para ese producto!")
+            print()
+            Confir=input("¿Desea cargar otro silo? Y/N: ").upper()
+            while(Confir!='Y') and (Confir!='N'):
+                Confir=input("¿Desea cargar otro silo? Y/N: ").upper()
+            if(Confir=='N'):
+                Opci='V'
 
 def Sub_menu_admin():
     global ArcFisiProd
@@ -605,7 +851,6 @@ def Listado_total():
         Muestra = "|{:<20}|{:>10}|".format(Producto, Cod)
         print(Muestra)
         print("+--------------------+----------+")
-        print()
 
 def Alta_prod():
 
@@ -777,12 +1022,14 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
                     RegCup.Cod=CodP
                     RegCup.Fecha_Cupo = Fecha_Cupo
                     RegCup.Estado='P'
-                    RegCup.Formateo_Cupo()
                     Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
                     while(Confir!='Y') and (Confir!='N'):
                         Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
                     if(Confir=='Y'):
-                        RegCup.Guardar_Cambios()
+                        RegCup.Formateo_Cupo()
+                        ArcLogOp.seek(0,2)
+                        pickle.dump(RegCup,ArcLogOp)
+                        ArcLogOp.flush()
                         print('--------------------------')
                         print("Cupo creado exitosamente!")
                         print('--------------------------')
@@ -821,7 +1068,6 @@ def Revisión_cupo_creado(Patente,CodP,Fecha_Cupo):
         Muestra = "|{:<20}|{:>10}|".format(Dato, Valor)
         print(Muestra)
         print("+--------------------+----------+")
-        print()
 
 def Val_Fecha():
 
@@ -886,8 +1132,11 @@ def Recepción():
             input('Error, la patente debe ser alfanumérica y tener entre 6 y 7 carácteres <Enter para intentarlo nuevamente>')
             os.system('cls')
             Patente=ValidarPat()
-        now= datetime.now()
-        res=Reg.Busqueda_Cupos(Patente,now.year,now.month,now.day,'P','A')
+        res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'P','A')
+        ArcLogOp.seek(Puntero,0)
+        Reg.Formateo_Cupo()
+        pickle.dump(Reg, ArcLogOp)
+        ArcLogOp.flush()
         if(res==2):
             print("Recepción realizada correctamente!")
             print()
@@ -900,7 +1149,60 @@ def Recepción():
             print("No hay ningún cupo guardado para este camión el día de hoy!")
             input("<Enter para volver al menú principal>").upper()
             Patente='V'
-        
+
+def Ordenamiento():
+    ArcLogRubros.seek(0, 0)
+    aux = pickle.load(ArcLogRubros)
+    Reg = ArcLogRubros.tell()
+    t = os.path.getsize(ArcFisiRubros)
+    cantReg = int(t / Reg)
+    for i in range(0, cantReg-1):
+        for j in range(i+1, cantReg):
+            ArcLogRubros.seek(i*Reg, 0)
+            auxi = pickle.load(ArcLogRubros)
+            ArcLogRubros.seek(j*Reg, 0)
+            auxj = pickle.load(ArcLogRubros)
+            if int(auxi.CodR) > int(auxj.CodR):
+                ArcLogRubros.seek(i*Reg, 0)
+                pickle.dump(auxj, ArcLogRubros)
+                ArcLogRubros.seek(j*Reg, 0)
+                pickle.dump(auxi, ArcLogRubros)
+                ArcLogRubros.flush()
+
+def Muestra_Calidad(CodP):
+    global Rub_t
+
+    Rubro=Rubros()
+    RubrosxP=RubrosxProd()
+    trp=os.path.getsize(ArcFisiRubrosXProd)
+    ArcLogRubrosXProd.seek(0)
+    Ordenamiento()
+    Rub_t=[]
+    print("+-----------------------------------------+")
+    print("|   Rubros disponibles para el producto   |")
+    print("+--------------------+--------------------+")
+    print("| Nombre del rubro:  | Valores admitidos  |")
+    print("+--------------------+--------------------+")
+    while(ArcLogRubrosXProd.tell() < trp):
+        RubrosxP=pickle.load(ArcLogRubrosXProd)
+        if(RubrosxP.CodP==CodP):
+            Pos=Rubro.Dico(RubrosxP.CodR)
+            ArcLogRubros.seek(Pos,0)
+            Rubro=pickle.load(ArcLogRubros)
+            Nombre=Rubro.Nombre.strip()
+            if(RubrosxP.ValMin.strip()=='-1'):
+                if(RubrosxP.ValMax.strip()=='1'):
+                    Valores=("Espera un \"Sí\"")
+                else:
+                    Valores=("Espera un \"No\"")
+            else:
+                Valores=(f"{RubrosxP.ValMin.strip()}-{RubrosxP.ValMax.strip()}")
+            Rub=[Nombre,RubrosxP.ValMin.strip(),RubrosxP.ValMax.strip()]
+            Rub_t.append(Rub)
+            Muestra = "|{:<20}|{:<20}|".format(Nombre, Valores)
+            print(Muestra)
+            print("+--------------------+--------------------+")
+
 def Calidad():
 
     Reg=Cupo()
@@ -912,17 +1214,48 @@ def Calidad():
             input('Error, la patente debe ser alfanumérica y tener entre 6 y 7 carácteres <Enter para intentarlo nuevamente>')
             os.system('cls')
             Patente=ValidarPat()
-        now= datetime.now()
-        res=Reg.Busqueda_Cupos(Patente,now.year,now.month,now.day,'A','')
-        # Evaluar cada rubro del producto dependiendo de la carga del camión
-        # Print de cada rubro para ese producto en concreto y las medidas que debe pasar
-        # Si no pasa dos rubros está rechazado
-        # (Hay que ordenar rubros.dat de forma creciente por cod rubro)
-        # Usar búsqueda dicotómica
-        # Cambiar el estado a C
-
+        res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'A','')
+        ArcLogOp.seek(Puntero,0)
+        Reg=pickle.load(ArcLogOp)
+        if(res==-3):
+            print("El camión ingresado no puede acceder a control de calidad en este momento.")
+        elif(res==-2):
+            print(f"{Fore.RED+Style.BRIGHT}La patente ingresada no tiene cupos para el día de hoy!{Style.RESET_ALL}")
+        elif(res==1):
+            Muestra_Calidad(Reg.Cod)
+            Acum=0
+            for rub in Rub_t:
+                if(rub[1]=='-1'): #Booleana
+                    Val=input(f'El producto sufrió el rubro: \"{rub[0]}\"? (S/N) : ').upper()
+                    while(Val!='S') and (Val!='N'):
+                        Val=input(f'El producto sufrió el rubro: \"{rub[0]}\"? (S/N) : ').upper()
+                    if(Val=='S'):
+                        Val=1
+                    else:
+                        Val=0
+                else: #Numérica
+                    Val=input(f'<Entre {rub[1]} y {rub[2]}> - Ingrese el valor para el rubro: \"{rub[0]}\": ')
+                if(ValidarEnteros(Val,int(rub[1]),int(rub[2]))):
+                    Acum+=1
+            if(Acum>1):
+                print(f"{Fore.RED+Style.BRIGHT}El producto fue rechazado!{Style.RESET_ALL}")
+                res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'A','R')
+            else:
+                res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'A','C')
+                print('-------------------------------------')
+                print("El camión pasó el control de calidad!")
+                print('-------------------------------------')
+        Reg.Formateo_Cupo()
+        pickle.dump(Reg, ArcLogOp)
+        ArcLogOp.flush()
+        Confir=input("¿Desea controlar la calidad de otro camión? Y/N: ").upper()
+        while(Confir!='Y') and (Confir!='N'):
+            Confir=input("¿Desea controlar la calidad de otro camión? Y/N: ").upper()
+        if(Confir=='N'):
+            Patente='V'
 
 def Peso_bruto():
+    Reg=Cupo()
     os.system('cls')
     Patente=ValidarPat()
     while(Patente!='V'):
@@ -930,9 +1263,38 @@ def Peso_bruto():
             input('Error, la patente debe ser alfanumérica y tener entre 6 y 7 carácteres <Enter para intentarlo nuevamente>')
             os.system('cls')
             Patente=ValidarPat()
-        input('Patente ya validada, seguir desde acá')
+        res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'C','')
+        ArcLogOp.seek(Puntero,0)
+        Reg=pickle.load(ArcLogOp)
+        if(res==-3):
+            print("El camión ingresado no puede ingresar un peso bruto en este momento.")
+        elif(res==-2):
+            print(f"{Fore.RED+Style.BRIGHT}La patente ingresada no tiene cupos para el día de hoy!{Style.RESET_ALL}")
+        elif(res==1):
+            Pb=input("<Entre 1 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
+            while(ValidarEnteros(Pb,1,50000)):
+                    Pb=input("<Entre 1 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
+            ArcLogOp.seek(Puntero,0)
+            Reg=pickle.load(ArcLogOp)
+            Reg.Bruto = Pb
+            Reg.Formateo_Cupo()
+            pickle.dump(Reg,ArcLogOp)
+            ArcLogOp.flush()
+            Reg.Busqueda_Cupos(Patente,Fecha_Actual,'C','B')
+            Reg.Formateo_Cupo()
+            pickle.dump(Reg, ArcLogOp)
+            ArcLogOp.flush()
+            print('--------------------------------')
+            print("Peso bruto cargado exitosamente!")
+            print('--------------------------------')
+        Confir=input("¿Desea cargar el peso bruto de otro camión? Y/N: ").upper()
+        while(Confir!='Y') and (Confir!='N'):
+            Confir=input("¿Desea cargar el peso bruto de otro camión? Y/N: ").upper()
+        if(Confir=='N'):
+            Patente='V'
 
 def Tara():
+    Reg=Cupo()
     os.system('cls')
     Patente=ValidarPat()
     while(Patente!='V'):
@@ -940,44 +1302,160 @@ def Tara():
             input('Error, la patente debe ser alfanumérica y tener entre 6 y 7 carácteres <Enter para intentarlo nuevamente>')
             os.system('cls')
             Patente=ValidarPat()
-        input('Patente ya validada, seguir desde acá')
+        res=Reg.Busqueda_Cupos(Patente,Fecha_Actual,'B','')
+        ArcLogOp.seek(Puntero,0)
+        Reg=pickle.load(ArcLogOp)
+        if(res==-3):
+            print("El camión ingresado no puede ingresar la tara en este momento.")
+        elif(res==-2):
+            print(f"{Fore.RED+Style.BRIGHT}La patente ingresada no tiene cupos para el día de hoy!{Style.RESET_ALL}")
+        elif(res==1):
+            Tara=input(f"<Entre 1 y {Reg.Bruto.strip()}> - Ingrese la tara del camión ingresado: ")
+            while(ValidarEnteros(Tara,1,int(Reg.Bruto.strip()))):
+                    Tara=input(f"<Entre 1 y {Reg.Bruto.strip()}> - Ingrese la tara del camión ingresado: ")
+            Reg.Tara = Tara
+            PesoN=int(Reg.Bruto.strip()) - int(Reg.Tara.strip())
+            Silo=Silos()
+            Silo.Busqueda('',Reg.Cod.strip())
+            ArcLogSilos.seek(Puntero,0)
+            Silo=pickle.load(ArcLogSilos)
+            Silo.Stock=PesoN
+            Silo.Formateo()
+            pickle.dump(Silo,ArcLogSilos)
+            ArcLogSilos.flush()
+            Reg.Busqueda_Cupos(Patente,Fecha_Actual,'B','F')
+            ArcLogOp.seek(Puntero,0)
+            Reg.Formateo_Cupo()
+            pickle.dump(Reg, ArcLogOp)
+            ArcLogOp.flush()
+            print('--------------------------')
+            print("Tara cargada exitosamente!")
+            print('--------------------------')
+        Confir=input("¿Desea cargar la tara de otro camión? Y/N: ").upper()
+        while(Confir!='Y') and (Confir!='N'):
+            Confir=input("¿Desea cargar la tara de otro camión? Y/N: ").upper()
+        if(Confir=='N'):
+            Patente='V'
 
-def Pantalla_Reportes():
+def PatentesReportes():
+    os.system("cls")
+    Arr=[['CEBADA',PatMayCeb,PatMenCeb],['GIRASOL',PatMayGir,PatMenGir],['MAÍZ',PatMayMaiz,PatMenMaiz],['SOJA',PatMaySoja,PatMenSoja],['TRIGO',PatMayTrigo,PatMenTrigo]]
+    print("+-----------------------------------------------------+")
+    print("|  Patentes que realizaron la mayor y menor descarga  |")
+    print("+-------------+-------------------+-------------------+")
+    print("|  Producto   |  Mayor descarga   |   Menor descarga  |")
+    print("+-------------+-------------------+-------------------+")
+    for p in Arr:
+        Producto = p[0]
+        Mayor = p[1]
+        Menor = p[2]
+        Muestra = f"|{Producto.center(13)}|{Mayor.center(19)}|{Menor.center(19)}|"
+        print(Muestra)
+        print("+-------------+-------------------+-------------------+")
+    input("<Enter para volver al menú anterior>")
+
+def MuestraReportes(Titulo, col1,xc,xg,xm,xs,xt):
+
+    Productos = [
+    {
+        "Producto": "CEBADA",
+        "Valor": xc,
+    },
+    {
+        "Producto": "GIRASOL",
+        "Valor": xg,
+    },
+    {
+        "Producto": "MAÍZ",
+        "Valor": xm,
+    },    {
+        "Producto": "SOJA",
+        "Valor": xs,
+    },    {
+        "Producto": "TRIGO",
+        "Valor": xt,
+    },
+]
+
+    os.system("cls")
+    print("+-----------------------------------------+")
+    print(f"|{Titulo.center(41)}|")
+    print("+---------------+-------------------------+")
+    print(f"|{'Producto'.center(15)}|{col1.center(25)}|")
+    print("+---------------+-------------------------+")
+    for p in Productos:
+        Producto = p["Producto"]
+        Valor = p["Valor"]
+        if(isinstance(Valor,float)==True):
+            Valor = round(Valor,2)
+        Muestra = f"|{Producto.center(15)}|{str(Valor).center(25)}|"
+        print(Muestra)
+        print("+---------------+-------------------------+")
+    input("<Enter para volver al menú anterior>")
+
+def Pantalla_Reportes(): #Borrar si no se hace como menú
     os.system('cls')
-    print(f'{Fore.CYAN+Style.BRIGHT}------------MENÚ REPORTES------------')
-    print(f'''{Style.RESET_ALL}\nA- Cantidad de cupos otorgados
-B- Cantidad total de camiones recibidos
-C- Cantidad total de camiones de cada producto
-D- Peso neto total de cada producto
-E- Peso neto total de cada producto
-F- Promedio del peso neto de producto por camión de ese producto
-G- Patente del camión de cada producto que menor cantidad de dicho producto cargó
+    print(f'{Fore.CYAN+Style.BRIGHT}-----------------------MENÚ REPORTES----------------------')
+    print(f'''{Style.RESET_ALL}\nCantidad de cupos otorgados: {CantCupos}
+Cantidad total de camiones recibidos: {CantRec}
+A- Cantidad total de camiones de cada producto
+B- Peso neto total de cada producto
+C- Promedio del peso neto por camión de cada producto
+D- Patentes mayor y menor descarga realizada
 V- Volver al MENU PRINCIPAL
 
-{Fore.CYAN+Style.BRIGHT}---------------------------------------------{Style.RESET_ALL}''')
+{Fore.CYAN+Style.BRIGHT}----------------------------------------------------------{Style.RESET_ALL}''')
 
 def Reportes():
     Opci=""
     while(Opci!='V'):
+        Reg=Cupo()
+        Reg.Conteo()
         Pantalla_Reportes()
-        input('Seguir con el flujo del programa desde acá')
-        Opci=input('V para volver: ').upper()
+        Opci=input('[V para volver al menú principal] - Ingrese una opción: ').upper()
+        while(Opci!='A') and (Opci!='B') and (Opci!='C') and (Opci!='D') and (Opci!='V'):
+            Opci=input('[V para volver al menú principal] - Ingrese una opción: ').upper()
+        if(Opci=='A'):
+            MuestraReportes('Camiones recibidos por producto','Camiones recibidos',ContCebada,ContGirasol,ContMaiz,ContSoja,ContTrigo)
+        elif(Opci=='B'):
+            MuestraReportes('P/N total por producto','Peso neto total',AcumCeb,AcumGir,AcumMaiz,AcumSoja,AcumTrigo)
+        elif(Opci=='C'):
+            MuestraReportes('Promedio del P/N por camión','Promedio P/N',PromCamCeb,PromCamGir,PromCamMaiz,PromCamSoja,PromCamTrigo)
+        elif(Opci=='D'):
+            PatentesReportes()
+
 
 def Listado():
     Opci=''
-    os.system('cls')
+    Silo=Silos()
+    Reg=Cupo()
     while(Opci!='V'):
-        print(f'{Fore.CYAN+Style.BRIGHT}------------Listado de Silos y Rechazados------------')
-        print(f'''{Style.RESET_ALL}\nA- Mostrar el silo con mayor stock
-B- Cantidad total de camiones recibidos
-V- Volver al MENU PRINCIPAL
+        os.system('cls')
+        Mayor=Silo.MayorStock()
+        print(f'{Fore.CYAN+Style.BRIGHT}-------------------------Listado de Silos y Rechazados-------------------------')
+        print(f'''{Style.RESET_ALL}\n El silo con mayor stock es: {Mayor} {Style.RESET_ALL}
+La fecha debe introducirse con el formato \"Dia/Mes/Año\"        
+''')
+        Opci=input('[V para volver] - Ingrese una fecha para ver los camiones rechazados ese día: ').upper()
+        if(Opci!='V'):
+            try:
+                Fecha_Dada = datetime.strptime(Opci, "%d/%m/%Y")
+            except:
+                print("El formato introducido no es válido!")
+                input("<Enter para intentarlo nuevamente>")
+            Lista=Reg.Rechazados(Fecha_Dada)
+            Fecha_Dada=Fecha_Dada.strftime("%d/%m/%Y")
+            if(len(Lista)>0):
+                for i in Lista:
+                    print()
+                    print(f"Patentes rechazadas el día {Fecha_Dada}")
+                    print()
+                    print(i)
+                    input("<Enter para ingresar otra fecha>")
+            else:
+                print("No se rechazaron camiones ese día!")
+                input("<Enter para ingresar otra fecha>")
 
-{Fore.CYAN+Style.BRIGHT}-----------------------------------------------------{Style.RESET_ALL}''')
-        Opci=input('V para volver: ').upper()
-
-#Yo agregaría una opción como la G pero del mayor, de onda nomas
-
-# Recordar validar que el producto que tengan los camiones que se carguen esté en el archivo y que si no hay porductos cargados te mande a admin
 
 ### Programa Principal ###
 
