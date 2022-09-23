@@ -278,7 +278,7 @@ class Cupo():
             PromCamSoja=AcumSoja/ContSoja
         if(ContTrigo!=0):
             PromCamTrigo=AcumTrigo/ContTrigo
-        
+
 class Rubros():
 
     def __init__(self):
@@ -447,16 +447,14 @@ class RubrosxProd(): # Revisar que esté bien
 
     def Busqueda(self,CodP,CodR):
         t=os.path.getsize(ArcFisiRubrosXProd)
-        ArcLogRubrosXProd.seek(0)
-        while ArcLogRubrosXProd.tell() > t:
+        ArcLogRubrosXProd.seek(0,0)
+        while ArcLogRubrosXProd.tell() < t:
             Puntero=ArcLogRubrosXProd.tell()
             self=pickle.load(ArcLogRubrosXProd)
             if(self.CodR.strip() == CodR):
                 if(self.CodP.strip() == CodP):
                     return 1 #Existe
         return -1 #No existe
-
-
 
 def ValidarEnteros(nro, min, max):
     try:
@@ -692,7 +690,8 @@ OPCION D - Asignación de un rubro a un producto
                     if(Cod!='V'):
                         res=Reg.Busqueda(Producto.Cod,CodR)
                         if(res==1):
-                            print(f"El rubro {RegRub.Nombre.strip()} ya fue asignado a ese producto!")
+                            os.system("cls")
+                            print(f"El rubro {Fore.CYAN+Style.BRIGHT}{RegRub.Nombre.strip()}{Style.RESET_ALL} ya fue asignado a {Fore.CYAN+Style.BRIGHT}{Producto.Prod}{Style.RESET_ALL}!")
                             input("<Enter para volver al menú anterior>")
                             Opci='V'
                         elif(res==-1):
@@ -902,7 +901,7 @@ def Baja_prod():
     os.system("cls")
     print(f'''{Fore.CYAN+Style.BRIGHT}-------------------------------
 OPCION B - Baja de un producto
--------------------------------''')
+-------------------------------{Style.RESET_ALL}''')
     t = os.path.getsize(ArcFisiProd)
     if t==0:
         input("No hay productos cargados! <Enter para volver al menú anterior>")
@@ -913,15 +912,32 @@ OPCION B - Baja de un producto
             print()
             Consulta_Prod()
             print()
-            Cod=input(f"[V - Para volver al menú anterior] Ingrese el código del producto a seleccionar: {Style.RESET_ALL}").upper()
-            while (ValidarEnteros(Cod, 1, 5)) and (Cod!='V'):
-                Cod=input(f"{Fore.CYAN+Style.BRIGHT}[V - Para volver al menú anterior] {Fore.RED+Style.BRIGHT} Error, el producto que seleccionó no es válido. <Intentelo nuevamente>: {Style.RESET_ALL}").upper()
+            Cod=Producto.Valida_cod()
             if(Cod!='V'):
-                res=Producto.Busqueda(Cod,'Cod','I')
-                if(res == -1):
-                    print("El producto no se encontró en la lista!")
+                Reg=Cupo()
+                Reg.Conteo()
+                if(Cod=='1') and (ContCebada>0):
+                    print()
+                    print(f"No puedes dar de baja {Fore.RED+Style.BRIGHT}Cebada{Style.RESET_ALL} si ya hay camiones cargados del producto!")
+                elif(Cod=='2') and (ContGirasol>0):
+                    print()
+                    print(f"No puedes dar de baja {Fore.RED+Style.BRIGHT}Girasol{Style.RESET_ALL} si ya hay camiones cargados del producto!")
+                elif(Cod=='3') and (ContMaiz>0):
+                    print()
+                    print(f"No puedes dar de baja {Fore.RED+Style.BRIGHT}Maíz {Style.RESET_ALL}si ya hay camiones cargados del producto!")
+                elif(Cod=='4') and (ContSoja>0):
+                    print()
+                    print(f"No puedes dar de baja {Fore.RED+Style.BRIGHT}Soja{Style.RESET_ALL} si ya hay camiones cargados del producto!")
+                elif(Cod=='5') and (ContTrigo>0):
+                    print()
+                    print(f"No puedes dar de baja {Fore.RED+Style.BRIGHT}Trigo{Style.RESET_ALL} si ya hay camiones cargados del producto!")
                 else:
-                    print("Producto dado de baja correctamente!")
+                    res=Producto.Busqueda(Cod,'Cod','I')
+                    if(res == -1):
+                        print("El producto no se encontró en la lista!")
+                    else:
+                        print("Producto dado de baja correctamente!")
+                print()
                 Cod=input("[V - Para volver al menú anterior] - Enter para dar de baja otro producto: ").upper()
                 os.system("cls")
 
@@ -1026,38 +1042,47 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
                 while(res!='A'):
                     if(CodP=='V'):
                         Patente='V'
-                        res=0
+                        res='A'
                     else:
                         print("Error, el producto seleccionado no está cargado!")
                         CodP=input("[V - Para volver al menú principal] - Ingrese el código del producto que cargará: ").upper()
                         res=Producto.Busqueda(CodP,'Cod','')
                 print()
                 if(CodP!='V'):
-                    Revisión_cupo_creado(Patente,CodP,Fecha_Cupo)
-                    print()
-                    RegCup.Patente=Patente
-                    RegCup.Cod=CodP
-                    RegCup.Fecha_Cupo = Fecha_Cupo
-                    RegCup.Estado='P'
-                    Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
-                    while(Confir!='Y') and (Confir!='N'):
-                        Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
-                    if(Confir=='Y'):
-                        RegCup.Formateo_Cupo()
-                        ArcLogOp.seek(0,2)
-                        pickle.dump(RegCup,ArcLogOp)
-                        ArcLogOp.flush()
-                        print('--------------------------')
-                        print("Cupo creado exitosamente!")
-                        print('--------------------------')
+                    Silo=Silos()
+                    res=Silo.Busqueda('',CodP)
+                    if(res==-1):
                         print()
-                        Confir=input("¿Desea pedir un cupo para otro camión? Y/N: ").upper()
+                        print("No hay silos para ese producto en este momento!")
+                        input("<Enter para volver al menú anterior>")
+                        Patente='V'
+                    elif(res==1):
+                        Revisión_cupo_creado(Patente,CodP,Fecha_Cupo)
+                        print()
+                        RegCup.Patente=Patente
+                        RegCup.Cod=CodP
+                        RegCup.Fecha_Cupo = Fecha_Cupo
+                        RegCup.Estado='P'
+                        Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
                         while(Confir!='Y') and (Confir!='N'):
+                            Confir=input("¿Desea confirmar la creación del cupo? Y/N: ").upper()
+                        if(Confir=='Y'):
+                            RegCup.Formateo_Cupo()
+                            ArcLogOp.seek(0,2)
+                            pickle.dump(RegCup,ArcLogOp)
+                            ArcLogOp.flush()
+                            print()
+                            print('--------------------------')
+                            print("Cupo creado exitosamente!")
+                            print('--------------------------')
+                            print()
                             Confir=input("¿Desea pedir un cupo para otro camión? Y/N: ").upper()
-                        if(Confir=='N'):
-                            Patente='V'
-                    else:
-                        pass # Opción de modificar la carga?
+                            while(Confir!='Y') and (Confir!='N'):
+                                Confir=input("¿Desea pedir un cupo para otro camión? Y/N: ").upper()
+                            if(Confir=='N'):
+                                Patente='V'
+                        else:
+                            pass # Opción de modificar la carga?
                 
 def Revisión_cupo_creado(Patente,CodP,Fecha_Cupo):
     os.system("cls")

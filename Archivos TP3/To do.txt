@@ -1,0 +1,45 @@
+Fecha Máxima de entrega: domingo 9 de octubre
+Fecha de defensa : semana del 10 de octubre
+
+Manejo de dates en el prog:
+
+Fecha_Cupo.strftime("%d/%m/%Y") Date to string
+datetime.strptime("2018-01-31", "%d/%m/%Y") String to date
+
+Ej:
+
+Fecha=(f"{Dia}/{Mes}/{Agno}")
+Fecha_Cupo = datetime.strptime(Fecha, "%d/%m/%Y")
+
+
+Falta:
+
+Validar no entrar a calidad sin rubros para ese producto previamente cargados
+Verificar reportes, se pisan los camiones
+Error en calidad al cargar en memoria el archivo (Busqueda del estado)
+
+
+Datos reales rubros para llevar cargados:
+
+Los silos admiten hasta 1000 toneladas (Por si queremos modificarlo a futuro)
+
+Humedad (%) :
+
+Cebada   12 o 14
+Girasol  8-11
+Maíz     4-14
+Soja     12,5-13,5
+Trigo    12-14
+
+Tamaño del grano:
+
+Cebada   6       -   9.5mm
+Girasol  10      -   13.4 mm
+Maíz     8       -   11mm
+Soja     5       -   10mm
+Trigo    15.41   -   18.37mm
+
+GUI:
+
+https://www.pythontutorial.net/tkinter/tkinter-treeview/ para mostrar los camiones cargados por ejemplo
+https://recursospython.com/guias-y-manuales/lista-desplegable-combobox-en-tkinter/ prod a elegir camión o dar de alta/baja/modif
