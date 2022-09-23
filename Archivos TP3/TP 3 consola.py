@@ -143,8 +143,7 @@ class Cupo():
             if(Fecha==Fecha_Dada) and (self.Estado=='R'):
                 Lista_pat.append(self.Patente.strip())
         return Lista_pat
-
-    
+   
     def Conteo(self):
         global CantCupos,CantRec,ContCebada,ContGirasol,ContMaiz,ContSoja,ContTrigo,MayorDescCeb,MenorDescCeb,MayorDescGir,MenorDescGir,MayorDescMaiz,MenorDescMaiz,MayorDescSoja,MenorDescSoja,MayorDescTrigo,MenorDescTrigo,MenorDescTrigo,PromCamCeb,PromCamGir,PromCamMaiz,PromCamSoja,PromCamTrigo,AcumCeb,AcumGir,AcumMaiz,AcumSoja,AcumTrigo,PatMayCeb,PatMenCeb,PatMayGir,PatMenGir,PatMayMaiz,PatMenMaiz,PatMaySoja,PatMenSoja,PatMayTrigo,PatMenTrigo
 
@@ -280,7 +279,6 @@ class Cupo():
         if(ContTrigo!=0):
             PromCamTrigo=AcumTrigo/ContTrigo
         
-
 class Rubros():
 
     def __init__(self):
@@ -446,6 +444,19 @@ class RubrosxProd(): # Revisar que esté bien
         self.ValMin = self.ValMin.ljust(5)
         self.ValMax = str(self.ValMax)
         self.ValMax = self.ValMax.ljust(5)
+
+    def Busqueda(self,CodP,CodR):
+        t=os.path.getsize(ArcFisiRubrosXProd)
+        ArcLogRubrosXProd.seek(0)
+        while ArcLogRubrosXProd.tell() > t:
+            Puntero=ArcLogRubrosXProd.tell()
+            self=pickle.load(ArcLogRubrosXProd)
+            if(self.CodR.strip() == CodR):
+                if(self.CodP.strip() == CodP):
+                    return 1 #Existe
+        return -1 #No existe
+
+
 
 def ValidarEnteros(nro, min, max):
     try:
@@ -628,6 +639,7 @@ OPCION C - Alta de un rubro
                 else:
                     res=Reg.Alta(Nom,CodR)
                     if(res==-1):
+                        print()
                         print("Rubro cargado correctamente!")
                     elif(res==2):
                         ArcLogRubros.seek(Puntero,0)
@@ -668,60 +680,74 @@ OPCION D - Asignación de un rubro a un producto
                         print()
                         CodR=input("El código ingresado no le pertenece a ningún rubro, inténtelo nuevamente: ")
                         res=RegRub.Busqueda('',CodR)
-                    print()
-                    Reg.CodR=CodR
+                    os.system("cls")
                     Listado_total()
                     print()
                     ArcLogRubros.seek(Puntero,0)
                     RegRub=pickle.load(ArcLogRubros)
-                    print(f"A qué producto quiere asignarle el rubro \"{RegRub.Nombre.strip()}\"?: ")
+                    print(f"A qué producto quiere asignarle el rubro {Fore.CYAN+Style.BRIGHT}\"{RegRub.Nombre.strip()}\"{Style.RESET_ALL}?: ")
                     print()
                     Producto=Productos()
                     Cod=Producto.Valida_cod()
                     if(Cod!='V'):
-                        Reg.CodP=Producto.Cod
-                        print()
-                        print("El rubro esperará una respuesta de \"sí o no\" o un valor numérico?")
-                        print("\'S\' para sí o no")
-                        print("\'N\' para un valor numérico")
-                        tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                        while(tmp!='S') and (tmp!='N'):
-                            tmp=input("¿Qué respuesta recibirá el rubro?").upper()
-                        if(tmp=='N'): # Num
-                            ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                            while(ValidarFloats(ValMin,0,100)):
-                                ValMin=input("[De 0 a 100] - Ingrese el valor mínimo que aceptará ese rubro: ")
-                            Reg.ValMin=ValMin
-                            ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
-                            while(ValidarFloats(ValMax,0,100)):
-                                ValMax=input("[De 0 a 100] - Ingrese el valor máximo que aceptará ese rubro: ")
-                            Reg.ValMax=ValMax
-                            print(f'''El rubro número {CodR} ha sido asignado correctamente al producto {Producto.Prod}!
-Aceptará valores entre {ValMin} y {ValMax}.
-''')
-                        else: # BOOLEANA
-                            tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
+                        res=Reg.Busqueda(Producto.Cod,CodR)
+                        if(res==1):
+                            print(f"El rubro {RegRub.Nombre.strip()} ya fue asignado a ese producto!")
+                            input("<Enter para volver al menú anterior>")
+                            Opci='V'
+                        elif(res==-1):
+                            os.system("cls")
+                            Reg.CodP=Producto.Cod
+                            Reg.CodR=CodR
+                            print()
+                            print(f"{Fore.CYAN+Style.BRIGHT}\"{RegRub.Nombre.strip()}\"{Style.RESET_ALL} esperará una respuesta de {Fore.CYAN+Style.BRIGHT}\"sí o no\"{Style.RESET_ALL} o un {Fore.CYAN+Style.BRIGHT}valor numérico{Style.RESET_ALL}?")
+                            print(f"{Fore.CYAN+Style.BRIGHT}\"S\"{Style.RESET_ALL} para sí o no")
+                            print(f"{Fore.CYAN+Style.BRIGHT}\"N\"{Style.RESET_ALL} para un valor numérico")
+                            print()
+                            tmp=input("").upper()
                             while(tmp!='S') and (tmp!='N'):
-                                tmp=input("El producto será válido en caso de recibir una respuesta de sí o de no? S/N").upper()
-                            if(tmp=='N'):
-                                Reg.ValMax=0 # Ante "False" debería ser bueno el prooducto
-                                Reg.ValMin=-1
-                            else:
-                                Reg.ValMax=1 # Ante "True" debería ser bueno el prooducto
-                                Reg.ValMin=-1
-                        Reg.Formateo_Rubrosxprod()
-                        ArcLogRubrosXProd.seek(0,2)
-                        pickle.dump(Reg,ArcLogRubrosXProd)
-                        ArcLogRubrosXProd.flush()
-                        Opci=''
-                        while(Opci!='V') and (Opci!='S'):
-                            print('''
-¿Qué desea hacer a continuación?
+                                tmp=input("").upper()
+                            if(tmp=='N'): # Num
+                                os.system("cls")
+                                ValMin=input(f"[De 0 a 100] - Ingrese el valor {Fore.RED+Style.BRIGHT}mínimo {Style.RESET_ALL}que aceptará ese rubro: ")
+                                while(ValidarFloats(ValMin,0,100)):
+                                    ValMin=input(f"[De 0 a 100] - Ingrese el valor {Fore.RED+Style.BRIGHT}mínimo {Style.RESET_ALL}que aceptará ese rubro: ")
+                                Reg.ValMin=ValMin
+                                print()
+                                ValMax=input(f"[De {ValMin} a 100] - Ingrese el valor {Fore.RED+Style.BRIGHT}máximo {Style.RESET_ALL}que aceptará ese rubro: ")
+                                while(ValidarFloats(ValMax,float(ValMin),100)):
+                                    ValMax=input(f"[De {ValMin} a 100] - Ingrese el valor {Fore.RED+Style.BRIGHT}máximo {Style.RESET_ALL}que aceptará ese rubro: ")
+                                Reg.ValMax=ValMax
+                                os.system("cls")
+                                print(f'''El rubro {Fore.CYAN+Style.BRIGHT}{RegRub.Nombre.strip()}{Style.RESET_ALL} ha sido asignado correctamente al producto {Fore.CYAN+Style.BRIGHT}{Producto.Prod}!{Style.RESET_ALL}
+Aceptará valores entre {Fore.CYAN+Style.BRIGHT}{ValMin} {Style.RESET_ALL}y {Fore.CYAN+Style.BRIGHT}{ValMax}.
+{Style.RESET_ALL}''')
+                            else: # BOOLEANA
+                                os.system("cls")
+                                print(f"El producto será válido en caso de recibir una respuesta de sí o de no?{Fore.CYAN+Style.BRIGHT} S/N{Style.RESET_ALL}")
+                                tmp=input().upper()
+                                while(tmp!='S') and (tmp!='N'):
+                                    print(f"El producto será válido en caso de recibir una respuesta de sí o de no?{Fore.CYAN+Style.BRIGHT} S/N{Style.RESET_ALL}")
+                                    tmp=input().upper()
+                                if(tmp=='N'):
+                                    Reg.ValMax=0
+                                    Reg.ValMin=-1
+                                else:
+                                    Reg.ValMax=1
+                                    Reg.ValMin=-1
+                            Reg.Formateo_Rubrosxprod()
+                            ArcLogRubrosXProd.seek(0,2)
+                            pickle.dump(Reg,ArcLogRubrosXProd)
+                            ArcLogRubrosXProd.flush()
+                            Opci=''
+                            while(Opci!='V') and (Opci!='S'):
+                                print(f'''
+{Fore.CYAN+Style.BRIGHT}¿Qué desea hacer a continuación?
 
 \'S\' para seguir
 \'V\' para volver al menú anterior
-''')
-                            Opci=input("Opción: ").upper()
+{Style.RESET_ALL}''')
+                                Opci=input("Ingrese una opción: ").upper()
 
 def Alta_silo(): # Agregar bajas y modificaciones si queremos mejorarlo
     Opci=''
@@ -806,16 +832,6 @@ def ValidarFloats(nro, min, max):
             return False
         else:
             return True
-    except:
-        return True
-
-def Valida_prod(Prod): # En desuso de momento
-    try:
-        Prod=str(Prod).upper()
-        if (Prod!='TRIGO' and Prod!='SOJA' and Prod!='MAÍZ' and Prod!='MAIZ' and Prod!='GIRASOL' and Prod!='CEBADA'):
-            return True
-        else:
-            return False
     except:
         return True
 
@@ -995,7 +1011,8 @@ def Cupos(): #Para mejorar, podría haber opción de modificar el cupo en caso d
         if(Patente!='V'):
             Fecha_Cupo=Val_Fecha()
             if(RegCup.Busqueda_Cupos(Patente,Fecha_Cupo,'','')==-1):
-                input("Cupo ya otorgado <Enter para volver al menú principal>")
+                print()
+                input(f"{Fore.RED+Style.BRIGHT}Cupo ya otorgado! {Style.RESET_ALL} <Enter para volver al menú principal>")
                 Patente='V'
             else:
                 os.system("cls")
@@ -1393,7 +1410,7 @@ def MuestraReportes(Titulo, col1,xc,xg,xm,xs,xt):
         print("+---------------+-------------------------+")
     input("<Enter para volver al menú anterior>")
 
-def Pantalla_Reportes(): #Borrar si no se hace como menú
+def Pantalla_Reportes():
     os.system('cls')
     print(f'{Fore.CYAN+Style.BRIGHT}-----------------------MENÚ REPORTES----------------------')
     print(f'''{Style.RESET_ALL}\nCantidad de cupos otorgados: {CantCupos}
@@ -1423,7 +1440,6 @@ def Reportes():
             MuestraReportes('Promedio del P/N por camión','Promedio P/N',PromCamCeb,PromCamGir,PromCamMaiz,PromCamSoja,PromCamTrigo)
         elif(Opci=='D'):
             PatentesReportes()
-
 
 def Listado():
     Opci=''
