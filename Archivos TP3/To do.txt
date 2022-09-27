@@ -18,6 +18,13 @@ Validar no entrar a calidad sin rubros para ese producto previamente cargados
 Verificar reportes, se pisan los camiones
 Error en calidad al cargar en memoria el archivo (Busqueda del estado)
 
+-Max
+Producto Alta: Arreglar alta de productos limite 3 (se pueden ingresar los 5)
+Producto Consulta y Modificación: No encuentra los codigos de los productos
+
+Alta Rubro: Validar Codigo de rubro y no solo el nombre del rubro
+
+
 
 Datos reales rubros para llevar cargados:
 
