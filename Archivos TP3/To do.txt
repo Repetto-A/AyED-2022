@@ -15,7 +15,6 @@ Fecha_Cupo = datetime.strptime(Fecha, "%d/%m/%Y")
 Falta:
 
 Si el único camión ingresado es rechazado los reportes dan mal porque se asigna todo al primer camión
-Revisar bruto mayor a 2
 Validar que no se entre a rubros por prod sin prod u sin rubros?
 Especificar en alta los que ya están cargados y lo mismo en cuanto a rubros asignados en rxp
 Verificar reportes, se pisan los camiones
