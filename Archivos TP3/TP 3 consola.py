@@ -1483,28 +1483,32 @@ def Listado():
         os.system('cls')
         Mayor=Silo.MayorStock()
         print(f'{Fore.CYAN+Style.BRIGHT}-------------------------Listado de Silos y Rechazados-------------------------')
-        print(f'''{Style.RESET_ALL}\nEl silo con mayor stock es: {Mayor} {Style.RESET_ALL}
-La fecha debe introducirse con el formato \"Dia/Mes/Año\"        
+        print(f'''{Style.RESET_ALL}\nEl silo con mayor stock es:{Fore.CYAN+Style.BRIGHT} {Mayor} {Style.RESET_ALL}
+La fecha debe introducirse con el formato {Fore.CYAN+Style.BRIGHT}\"Dia/Mes/Año\"{Style.RESET_ALL}
+<Enter para utilizar la fecha del día de hoy>        
 ''')
         Opci=input('[V para volver] - Ingrese una fecha para ver los camiones rechazados ese día: ').upper()
         if(Opci!='V'):
             try:
+                if (Opci==''):
+                    now = datetime.now()
+                    Opci= f'{now.day}/{now.month}/{now.year}'
                 Fecha_Dada = datetime.strptime(Opci, "%d/%m/%Y")
+                Lista=Reg.Rechazados(Fecha_Dada)
+                Fecha_Dada=Fecha_Dada.strftime("%d/%m/%Y")
+                if(len(Lista)>0):
+                    for i in Lista:
+                        print()
+                        print(f"Patentes rechazadas el día {Fecha_Dada}")
+                        print()
+                        print(i)
+                        input("<Enter para ingresar otra fecha>")
+                else:
+                    print("No se rechazaron camiones ese día!")
+                    input("<Enter para ingresar otra fecha>")
             except:
                 print("El formato introducido no es válido!")
                 input("<Enter para intentarlo nuevamente>")
-            Lista=Reg.Rechazados(Fecha_Dada)
-            Fecha_Dada=Fecha_Dada.strftime("%d/%m/%Y")
-            if(len(Lista)>0):
-                for i in Lista:
-                    print()
-                    print(f"Patentes rechazadas el día {Fecha_Dada}")
-                    print()
-                    print(i)
-                    input("<Enter para ingresar otra fecha>")
-            else:
-                print("No se rechazaron camiones ese día!")
-                input("<Enter para ingresar otra fecha>")
 
 
 ### Programa Principal ###
