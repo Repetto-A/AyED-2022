@@ -14,13 +14,13 @@ Fecha_Cupo = datetime.strptime(Fecha, "%d/%m/%Y")
 
 Falta:
 
-Validar no entrar a calidad sin rubros para ese producto previamente cargados
+Si el único camión ingresado es rechazado los reportes dan mal porque se asigna todo al primer camión
+Revisar bruto mayor a 2
+Validar que no se entre a rubros por prod sin prod u sin rubros?
+Especificar en alta los que ya están cargados y lo mismo en cuanto a rubros asignados en rxp
 Verificar reportes, se pisan los camiones
-Error en calidad al cargar en memoria el archivo (Busqueda del estado)
 
 -Max
-Producto Alta: Arreglar alta de productos limite 3 (se pueden ingresar los 5)
-Producto Consulta y Modificación: No encuentra los codigos de los productos
 
 Alta Rubro: Validar Codigo de rubro y no solo el nombre del rubro
 
