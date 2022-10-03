@@ -1323,9 +1323,9 @@ def Peso_bruto():
         elif(res==-2):
             print(f"{Fore.RED+Style.BRIGHT}La patente ingresada no tiene cupos para el día de hoy!{Style.RESET_ALL}")
         elif(res==1):
-            Pb=input("<Entre 1 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
-            while(ValidarEnteros(Pb,1,50000)):
-                Pb=input("<Entre 1 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
+            Pb=input("<Entre 2 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
+            while(ValidarEnteros(Pb,2,50000)):
+                Pb=input("<Entre 2 y 50000> - Ingrese el peso bruto de la carga ingresada: ")
             ArcLogOp.seek(Puntero,0)
             Reg=pickle.load(ArcLogOp)
             Reg.Bruto = Pb
