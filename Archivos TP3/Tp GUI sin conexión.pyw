@@ -583,7 +583,7 @@ def Menu():
 	Packed="Menu_p"
 	Menu_p.configure(width=800, height=500, padx=5, pady=5)
 	Menu_p.pack_propagate(0)
-	ttk.Label(Menu_p, text="MENÚ PRINCIPAL", font=("arial",20)).pack(padx=10, pady=5)
+	ttk.Label(Menu_p, text="MENÚ PRINCIPAL", font=("arial",20)).pack(padx=10, pady=10)
 	boton1=ttk.Button(Menu_p, text="ADMINISTRACIONES", width=29, command=Administraciones)
 	boton1.pack(padx=5, pady=5)
 	boton2=ttk.Button(Menu_p, text="ENTREGA DE CUPOS", width=29, command=lambda:Menu_Pat('Cupos'))
@@ -602,8 +602,6 @@ def Menu():
 	boton8.pack(padx=5, pady=5)
 	boton9=ttk.Button(Menu_p, text="LISTADO DE SILOS Y RECHAZOS", width=29, command=Listado_silos)
 	boton9.pack(padx=5, pady=5)
-	botonextra=ttk.Button(Menu_p, text="PATENTES", width=29, command=Reportes_patentes)
-	botonextra.pack(padx=5,pady=5)
 	boton0=ttk.Button(Menu_p, text="FIN DEL PROGRAMA", command=salirAplicacion, width=29)
 	boton0.pack(padx=5, pady=5)
 
@@ -843,7 +841,7 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 				botonenviar.pack(padx=5, pady=10)	
 		except:
 			if cont_rubros>1:
-				messagebox.showwarning("Aviso importante","La carga no pasó el control de calidad!\nSe marcará como rechazada.")
+				messagebox.showwarning("Aviso importante","El producto no pasó el control de calidad!\nSe marcará la carga como rechazada.")
 				cursor.execute(f'UPDATE CUPOS SET ESTADO="R" WHERE PATENTE="{Patente}" AND ESTADO="A"')
 			else:
 				messagebox.showinfo("Control correcto", "La carga pasó el control de calidad!")
@@ -968,6 +966,8 @@ def Validar_tara(Patente,Tara,Peso_Bruto):
 def Reportes():
 	global Packed, Rep
 
+	if not(os.path.exists("PatenteMenor.png")):
+		Download("abc123","PatenteMenor")
 	Unpack()
 	Rep=tk.Frame(root)
 	Rep.pack(fill="both", expand=True)
@@ -988,6 +988,15 @@ def Reportes():
 	ttk.Label(Rep, text=f"Cantidad de cupos otorgados: {Cant_Cupos}", font=("arial",12)).pack(padx=10, pady=10)
 	ttk.Label(Rep, text=f"Cantidad de camiones recibidos: {Cant_Rec}", font=("arial",12)).pack(padx=10, pady=10)
 	Crear_arbol()
+
+	#PatMenorImg = Image.open("PatenteMenor.png")
+	#PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
+	#PatMenor = ImageTk.PhotoImage(PatMenorImg)
+	#MarcoPatMenor= ttk.Label(Rep, image=PatMenor)
+	#MarcoPatMenor.image = PatMenor
+	#MarcoPatMenor.pack(padx=5, pady=5)
+	#botonmenu=ttk.Button(Rep, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+
 
 def item_selected(event):
     for selected_item in tree.selection():
@@ -1034,6 +1043,7 @@ def consultar_rechazados(Fecha):
 			)
 		Listado.pack(padx=5, pady=5)
 		botonenviar = ttk.Button(Lsil, text="Elegir otro día", width=20, command=Listado_silos).pack(padx=5, pady=20)
+
 
 def Crear_arbol():
 	global tree
@@ -1108,72 +1118,17 @@ def Crear_arbol():
 
 	for p in range(1,6):
 		cursor.execute(f'SELECT PATENTE FROM CUPOS WHERE COD_PROD={p} AND (PESO_BRUTO-TARA) = (SELECT MIN(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p} AND ESTADO="F")')
-		Pat_may = cursor.fetchone()
-		if Pat_may!=None:
-			Pat_may = ''.join( x for x in str(Pat_may) if x not in chars)
+		Pat_men = cursor.fetchone()
+		if Pat_men!=None:
+			Pat_men = ''.join( x for x in str(Pat_men) if x not in chars)
 		else:
-			Pat_may = 0
-		Productos[p-1].append(str(Pat_may))
+			Pat_men = 0
+		Productos[p-1].append(str(Pat_men))
 
 	for prod in Productos:
 		tree.insert('', tk.END, values=prod)
 
 	botonmenu=ttk.Button(Frame_tree, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(pady=20)
-
-def Reportes_patentes():
-
-	Unpack()
-
-	chars = "(),'"
-
-	Productos = [
-	['Cebada'],
-	['Girasol'],
-	['Maíz'],
-	['Soja'],
-	['Trigo']
-	]
-
-	for p in range(1,6):
-		cursor.execute(f'SELECT PATENTE FROM CUPOS WHERE COD_PROD={p} AND (PESO_BRUTO-TARA) = (SELECT MAX(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p})')
-		Pat_may = cursor.fetchone()
-		if Pat_may!=None:
-			Pat_may = ''.join( x for x in str(Pat_may) if x not in chars)
-			if not os.path.exists(f"PatenteMayor{p}.png"):
-				Download(f"{Pat_may}",f"PatenteMayor{p}")
-		else:
-			Pat_may = 0
-		Productos[p-1].append(str(Pat_may))
-		if not os.path.exists('PatenteMenor.png'):
-			Download("404error","PatenteMenor")
-
-	for p in range(1,6):
-		cursor.execute(f'SELECT PATENTE FROM CUPOS WHERE COD_PROD={p} AND (PESO_BRUTO-TARA) = (SELECT MIN(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p} AND ESTADO="F")')
-		Pat_men = cursor.fetchone()
-		if Pat_men!=None:
-			Pat_men = ''.join( x for x in str(Pat_men) if x not in chars)
-			if not os.path.exists(f"PatenteMenor{p}.png"):
-				Download(f"{Pat_men}",f"PatenteMenor{p}")
-		else:
-			Pat_men = 0
-		Productos[p-1].append(str(Pat_men))
-		if not os.path.exists('PatenteMenor.png'):
-			Download("404error","PatenteMenor")
-
-	ttk.Label(root, text=f"Listado de las patentes que realizaron las mayores y menores descargas", font=("arial",14)).grid(padx=5, pady=5, row=0, column=0)
-	print(Productos)
-
-	# Filtrar los que fueron cargados y los que no, para luego colocar las labels
-
-	PatMenorImg = Image.open("PatenteMenor.png")
-	PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
-	PatMenor = ImageTk.PhotoImage(PatMenorImg)
-	MarcoPatMenor= ttk.Label(root, image=PatMenor)
-	MarcoPatMenor.image = PatMenor
-	MarcoPatMenor.grid(padx=5, pady=5,column=2,row=2)
-
-	botonsalir=ttk.Button(root, text="SALIR", width=15, command=lambda:root.destroy()).grid(row=0,column=0,pady=20)
-
 
 def Download(pat, name):
 
