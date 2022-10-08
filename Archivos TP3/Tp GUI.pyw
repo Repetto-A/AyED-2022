@@ -398,8 +398,9 @@ def Asignar_Rubros():
 	Rubros = cursor.fetchall()
 	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
 	Productos_cargados = cursor.fetchall()
-	if Rubros == None or Productos_cargados == None:
-		pass
+	if Rubros == [] or Productos_cargados == []:
+		messagebox.showwarning("Error",f"No se pueden asignar rubros sin primero cargar rubros y productos!")
+		Volver_Menu()
 	else:
 		chars = '(),'
 		Rubros = map(lambda elem: ''.join( x for x in elem if x not in chars),Rubros)
@@ -521,6 +522,7 @@ def Enviar_valores(Rubro,Producto,Valores,x=''):
 		messagebox.showinfo("Asignación correcta", f"Rubro asignado correctamente a {Producto.capitalize()}!")
 	else:
 		messagebox.showwarning("Error",f"{Rubro} ya fue asignado a {Producto.capitalize()}!.")
+		Asignar_Rubros()
 
 def Administraciones():
 	global root, Adm, Menu_p, Packed, Submp
@@ -801,8 +803,6 @@ def Calidad(Patente):
 			rubros = Listar_rubros(Rubros_por_validar)
 			cont_rubros = 0
 			Validar_rubro('',Patente)
-			cursor.execute(f'SELECT FECHA FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="P"')
-			Fecha = cursor.fetchone()
 			botonmenu=ttk.Button(Frame_Rubros, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5,side='bottom')
 		
 def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
@@ -850,10 +850,10 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 		except:
 			if cont_rubros>1:
 				messagebox.showwarning("Aviso importante","El producto no pasó el control de calidad!\nSe marcará la carga como rechazada.")
-				cursor.execute(f'UPDATE CUPOS SET ESTADO="R" WHERE PATENTE="{Patente}" AND ESTADO="A"')
+				cursor.execute(f'UPDATE CUPOS SET ESTADO="R" WHERE PATENTE="{Patente}" AND ESTADO="A" AND FECHA="{Fecha_hoy}"')
 			else:
 				messagebox.showinfo("Control correcto", "La carga pasó el control de calidad!")
-				cursor.execute(f'UPDATE CUPOS SET ESTADO="C" WHERE PATENTE="{Patente}" AND ESTADO="A"')
+				cursor.execute(f'UPDATE CUPOS SET ESTADO="C" WHERE PATENTE="{Patente}" AND ESTADO="A" AND FECHA="{Fecha_hoy}"')
 			conn.commit()
 			valor=messagebox.askquestion("Calidad controlada", "¿Desea controlar la calidad de otra carga?")
 			if valor == 'yes':
@@ -877,7 +877,7 @@ def PBruto(Patente):
 	Packed="PBru"
 	Title=ttk.Label(PBru, text="REGISTRAR PESO BRUTO", font=("arial",20)).pack(padx=10, pady=10)
 
-	cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="C"')
+	cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="C" AND FECHA="{Fecha_hoy}"')
 	Cod_prod = cursor.fetchone()
 	if Cod_prod == None:
 		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que ingresar el peso bruto hoy!\n¿Desea ingresar otro camión?")
@@ -904,7 +904,7 @@ def Validar_pb(Patente,Peso_Bruto):
 		elif float(Peso_Bruto) > 50000:
 			messagebox.showwarning("Error", "El peso bruto no puede ser mayor a 50.000kg")
 		else:
-			cursor.execute(f'UPDATE CUPOS SET PESO_BRUTO={Peso_Bruto},ESTADO="B" WHERE PATENTE="{Patente}" AND ESTADO="C"')
+			cursor.execute(f'UPDATE CUPOS SET PESO_BRUTO={Peso_Bruto},ESTADO="B" WHERE PATENTE="{Patente}" AND ESTADO="C" AND FECHA="{Fecha_hoy}"')
 			conn.commit()
 			valor=messagebox.askquestion("Peso bruto asignado correctamente", "¿Desea ingresar el de otro camión?")
 			if valor == 'yes':
@@ -924,7 +924,7 @@ def Tara(Patente):
 	Packed="Tar"
 	Title=ttk.Label(Tar, text="REGISTRAR TARA", font=("arial",20)).pack(padx=10, pady=10)
 
-	cursor.execute(f'SELECT PESO_BRUTO FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="B"')
+	cursor.execute(f'SELECT PESO_BRUTO FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="B" AND FECHA="{Fecha_hoy}"')
 	Pbruto = cursor.fetchone()
 	if Pbruto == None:
 		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que ingresar la tara hoy!\n¿Desea ingresar otro camión?")
@@ -951,9 +951,9 @@ def Validar_tara(Patente,Tara,Peso_Bruto):
 		elif float(Tara) > float(Peso_Bruto):
 			messagebox.showwarning("Error", "La tara no puede ser mayor al peso bruto!")
 		else:
-			cursor.execute(f'UPDATE CUPOS SET TARA={Tara},ESTADO="F" WHERE PATENTE="{Patente}" AND ESTADO="B"')
+			cursor.execute(f'UPDATE CUPOS SET TARA={Tara},ESTADO="F" WHERE PATENTE="{Patente}" AND ESTADO="B" AND FECHA="{Fecha_hoy}"')
 			conn.commit()
-			cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE TARA={Tara} AND PATENTE="{Patente}"')
+			cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE TARA={Tara} AND PATENTE="{Patente}" AND FECHA="{Fecha_hoy}"')
 			Cod_prod = cursor.fetchone()
 			chars = "(),'"
 			Cod_prod = ''.join( x for x in str(Cod_prod) if x not in chars)
