@@ -579,8 +579,10 @@ def Volver_Menu():
 	Packed="Menu_p"
 
 def Menu():
-	global Menu_p, Packed, root
-	
+	global Menu_p, Packed, root, Fecha_hoy
+
+	now = datetime.now()
+	Fecha_hoy = f'{now.day}/{now.month}/{str(now.year)[2:]}'	
 	Menu_p=tk.Frame(root)
 	Menu_p.pack(fill="both", expand=True)
 	Packed="Menu_p"
@@ -681,10 +683,9 @@ def Valida_pat(Op_menu):
 				else:
 					Volver_Menu()
 			else:
-				now = datetime.now()
 				chars = "()',"
 				Fecha = ''.join( x for x in str(Fecha) if x not in chars)
-				if Fecha == f'{now.day}/{now.month}/{str(now.year)[2:]}':
+				if Fecha == Fecha_hoy:
 					cursor.execute(f'UPDATE CUPOS SET ESTADO="A" WHERE PATENTE="{X}" AND FECHA="{Fecha}"')
 					conn.commit()
 					valor=messagebox.askquestion("Recepción realizada", "¿Desea recibir otro camión?")
