@@ -966,8 +966,6 @@ def Validar_tara(Patente,Tara,Peso_Bruto):
 def Reportes():
 	global Packed, Rep
 
-	if not(os.path.exists("PatenteMenor.png")):
-		Download("abc123","PatenteMenor")
 	Unpack()
 	Rep=tk.Frame(root)
 	Rep.pack(fill="both", expand=True)
@@ -1129,14 +1127,6 @@ def Crear_arbol():
 		tree.insert('', tk.END, values=prod)
 
 	botonmenu=ttk.Button(Frame_tree, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(pady=20)
-
-def Download(pat, name):
-
-	name= str(name + ".png")
-	link=("http://matriculasdelmundo.com/gARG1.php?textARG1=" + pat)
-	r = requests.get(link)
-	with open(name,'wb') as f:
-		f.write(r.content)
 
 def Notificacion():
 
