@@ -695,8 +695,6 @@ def Valida_pat(Op_menu):
 			Calidad(X)
 		elif(Op_menu=="PBruto"):
 			PBruto(X)
-		elif(Op_menu=="Descarga"):
-			Descarga(X)
 		elif(Op_menu=="Tara"):
 			Tara(X)
 
@@ -781,7 +779,7 @@ def Calidad(Patente):
 	cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="A"')
 	Cod_prod = cursor.fetchone()
 	if Cod_prod == None:
-		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que verificar calidad hoy!\n¿Desea recibir otro camión?")
+		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que verificar calidad hoy!\n¿Desea validar otro camión?")
 		if valor == 'yes':
 			Menu_Pat('Calidad')
 		else:
@@ -801,7 +799,7 @@ def Calidad(Patente):
 		botonmenu=ttk.Button(Frame_Rubros, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5,side='bottom')
 		
 def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
-	global cont_rubros, Frame_boolean
+	global cont_rubros, Frame_boolean, Frame_num
 
 	if Eleccion!='':
 		if subpacked == 'Boolean':
@@ -810,9 +808,8 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 				cont_rubros += 1
 		elif subpacked == 'Numeric':
 			Frame_num.destroy()
-			# Comprobación de valores
-			Eleccion.split('-')
-			if int(Valor)<int(Eleccion[0]) or int(Valor)>int(Eleccion[1]):
+			Valor = Valor.split('-')
+			if int(Eleccion)<int(Valor[0]) or int(Eleccion)>int(Valor[1]):
 				cont_rubros+=1
 		chars = "(),'"
 		try:
@@ -825,7 +822,7 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 				elec = tk.StringVar()
 				Frame_boolean = tk.Frame(Frame_Rubros)
 				Frame_boolean.pack()
-				ttk.Label(Frame_boolean, text=f"El producto sufrió el rubro {nombrerubro}?", font=("arial",14)).pack(padx=10, pady=10)
+				ttk.Label(Frame_boolean, text=f"El producto sufrió el rubro {nombrerubro}?", font=("arial",14)).pack(padx=10, pady=20)
 				ttk.Radiobutton(Frame_boolean, text="Sí", variable=elec, value='True').pack(padx=5)
 				ttk.Radiobutton(Frame_boolean, text="No", variable=elec, value='False').pack(padx=5)
 				botonenviar=ttk.Button(Frame_boolean, text="Enviar", width=10, command=lambda:Validar_rubro(subpacked,Patente,rubro[3],elec.get()))
@@ -835,13 +832,14 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 				Valor = tk.IntVar()
 				Frame_num = tk.Frame(Frame_Rubros)
 				Frame_num.pack()
-				ttk.Label(Frame_num, text=f"Ingrese el valor del rubro {nombrerubro}", font=("arial",14)).pack(padx=10, pady=10)
-				ttk.Label(Frame_num, text="Valor: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
-				ttk.Entry(Frame_num,textvariable=Valor).pack(padx=10, pady=10,side='right', anchor='w')
-
+				ttk.Label(Frame_num, text=f"Ingrese el valor del rubro {nombrerubro}", font=("arial",14)).pack(padx=10, pady=20)
+				Frame_Valor = tk.Frame(Frame_num)
+				Frame_Valor.pack(padx=5, pady=5, side='top')
+				ttk.Label(Frame_Valor, text="Valor:", font=("arial",10)).pack(padx=5,pady=10, side='left', anchor='e')
+				ttk.Entry(Frame_Valor,textvariable=Valor).pack(padx=5,pady=10,side='right', anchor='w')
 
 				botonenviar=ttk.Button(Frame_num, text="Enviar", width=10, command=lambda:Validar_rubro(subpacked,Patente,rubro[3],Valor.get()))
-				botonenviar.pack(padx=5, pady=5)	
+				botonenviar.pack(padx=5, pady=10)	
 		except:
 			if cont_rubros>1:
 				messagebox.showwarning("Aviso importante","El producto no pasó el control de calidad!\nSe marcará la carga como rechazada.")
@@ -863,7 +861,6 @@ def Listar_rubros(Lista_rubros):
 	for rubro in Lista_rubros:
 		yield rubro
 
-
 def PBruto(Patente):
 	global Packed, PBru
 
@@ -873,18 +870,44 @@ def PBruto(Patente):
 	PBru.pack_propagate(0)
 	Packed="PBru"
 	Title=ttk.Label(PBru, text="REGISTRAR PESO BRUTO", font=("arial",20)).pack(padx=10, pady=10)
+
+	cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="C"')
+	Cod_prod = cursor.fetchone()
+	if Cod_prod == None:
+		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que ingresar el peso bruto hoy!\n¿Desea ingresar otro camión?")
+		if valor == 'yes':
+			Menu_Pat('PBruto')
+		else:
+			Volver_Menu()
+
+	Frame_pb = tk.Frame(PBru)
+	Frame_pb.pack()
+	PB = tk.StringVar()
+	ttk.Label(Frame_pb, text="Peso bruto:", font=("arial",10)).pack(padx=5,pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_pb,textvariable=PB).pack(padx=5,pady=10,side='right', anchor='w')
+
+	botonenviar=ttk.Button(PBru, text="Enviar", width=10, command=lambda:Validar_pb(Patente,PB.get())) # Agregar el command que lo verifique
+	botonenviar.pack(padx=5, pady=10)	
+
 	botonmenu=ttk.Button(PBru, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
-def Descarga(Patente):
-	global Packed, Des
-
-	Des=tk.Frame(root)
-	Des.pack(fill="both", expand=True)
-	Des.config(width=800, height=500, padx=5, pady=5)
-	Des.pack_propagate(0)
-	Packed="Des"
-	Title=ttk.Label(Des, text="REGISTRAR DESCARGA", font=("arial",20)).pack(padx=10, pady=10)
-	botonmenu=ttk.Button(Des, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+def Validar_pb(Patente,Peso_Bruto):
+	try:
+		float(Peso_Bruto)
+		if float(Peso_Bruto)<2:
+			messagebox.showwarning("Error", "El peso bruto no puede ser menor a 2kg")
+		elif float(Peso_Bruto) > 50000:
+			messagebox.showwarning("Error", "El peso bruto no puede ser mayor a 50.000kg")
+		else:
+			cursor.execute(f'UPDATE CUPOS SET PESO_BRUTO={Peso_Bruto},ESTADO="B" WHERE PATENTE="{Patente}" AND ESTADO="C"')
+			conn.commit()
+			valor=messagebox.askquestion("Peso bruto asignado correctamente", "¿Desea ingresar el de otro camión?")
+			if valor == 'yes':
+				Menu_Pat('PBruto')
+			else:
+				Volver_Menu()
+	except:
+		messagebox.showwarning("Error", "El peso bruto debe contener solamente números.")
 		
 def Tara(Patente):
 	global Packed, Tar
