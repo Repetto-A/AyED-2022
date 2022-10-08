@@ -1,5 +1,3 @@
-from ast import Sub
-from telnetlib import X3PAD
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import Entry, messagebox
@@ -12,6 +10,7 @@ from PIL import ImageTk, Image
 import sqlite3
 from tkcalendar import Calendar,DateEntry
 from datetime import datetime
+from tkinter.messagebox import showinfo
 
 def darkstyle(root):
    
@@ -99,8 +98,6 @@ def Enviar(origen):
 		messagebox.showinfo("Modificación correcta", "Producto modificado correctamente!")
 	conn.commit()
 
-def Listado_silos():
-	pass
 
 def Alta_prod():
 	global root, Menu_p, Packed, Alta_p, Listado
@@ -609,7 +606,7 @@ def Menu():
 	boton0.pack(padx=5, pady=5)
 
 def Unpack():
-	global Packed, Menu_p, Submp, Adm, Pat, Cup, Cal
+	global Packed, Menu_p, Submp, Adm, Pat, Cup, Cal, Frame_tree
 	
 	if(Packed=="Menu_p"):
 		Menu_p.pack_forget()
@@ -625,8 +622,6 @@ def Unpack():
 		Cal.pack_forget()
 	elif(Packed=="PBru"):
 		PBru.pack_forget()
-	elif(Packed=="Des"):
-		Des.pack_forget()
 	elif(Packed=="Tar"):
 		Tar.pack_forget()
 	elif(Packed=="Rep"):
@@ -645,6 +640,8 @@ def Unpack():
 		Alta_s.pack_forget()
 	elif(Packed=="Asig_r"):
 		Asig_r.pack_forget()
+	elif(Packed=='Tree'):
+		Frame_tree.pack_forget()
 
 def Menu_Pat(Op_menu):
 	global Pat, root, Patente, Packed, Menu_p
@@ -856,7 +853,6 @@ def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 	else:
 		messagebox.showwarning("Error","Selecciona una opción!")
 
-
 def Listar_rubros(Lista_rubros):
 	for rubro in Lista_rubros:
 		yield rubro
@@ -959,7 +955,7 @@ def Reportes():
 	global Packed, Rep
 
 	if not(os.path.exists("PatenteMenor.png")):
-		Download("abc123","PatenteMenor") #También puede ir en el command del menú
+		Download("abc123","PatenteMenor")
 	Unpack()
 	Rep=tk.Frame(root)
 	Rep.pack(fill="both", expand=True)
@@ -968,14 +964,122 @@ def Reportes():
 	Packed="Rep"
 	Title=ttk.Label(Rep, text="REPORTES", font=("arial",20)).pack(padx=10, pady=10)
 
-	PatMenorImg = Image.open("PatenteMenor.png")
-	PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
-	PatMenor = ImageTk.PhotoImage(PatMenorImg)
-	MarcoPatMenor= ttk.Label(Rep, image=PatMenor)
-	MarcoPatMenor.image = PatMenor
-	MarcoPatMenor.pack(padx=5, pady=5)
+	chars = "(),"
+	cursor.execute(f'SELECT MAX(NUM_CUPO) FROM CUPOS')
+	Cant_Cupos = cursor.fetchone()
+	cursor.execute(f'SELECT COUNT(NUM_CUPO) FROM CUPOS WHERE ESTADO<>"P"')
+	Cant_Rec = cursor.fetchone()
+
+	Cant_Cupos = ''.join( x for x in str(Cant_Cupos) if x not in chars)
+	Cant_Rec = ''.join( x for x in str(Cant_Rec) if x not in chars)
+
+	ttk.Label(Rep, text=f"Cantidad de cupos otorgados: {Cant_Cupos}", font=("arial",12)).pack(padx=10, pady=10)
+	ttk.Label(Rep, text=f"Cantidad de camiones recibidos: {Cant_Rec}", font=("arial",12)).pack(padx=10, pady=10)
+	Crear_arbol()
+
+	#PatMenorImg = Image.open("PatenteMenor.png")
+	#PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
+	#PatMenor = ImageTk.PhotoImage(PatMenorImg)
+	#MarcoPatMenor= ttk.Label(Rep, image=PatMenor)
+	#MarcoPatMenor.image = PatMenor
+	#MarcoPatMenor.pack(padx=5, pady=5)
+	#botonmenu=ttk.Button(Rep, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+
+
+def item_selected(event):
+    for selected_item in tree.selection():
+        item = tree.item(selected_item)
+        record = item['values']
+        showinfo(title='Información', message='Reportes de productos.')
+
+def Listado_silos():
+	pass
+
+
+def Crear_arbol():
+	global tree
+
+	Frame_tree = tk.Frame(Rep)
+	Frame_tree.pack(fill="both", expand=True)
+	Frame_tree.config(width=800, height=500, padx=5, pady=5)
+	Frame_tree.pack_propagate(0)
+	chars = "(),'"
+
+	columns = ('Producto','Cantidad de camiones','Peso neto total','Promedio peso neto','Patente mayor descarga','Patente menor descarga')
+	tree = ttk.Treeview(Frame_tree, columns=columns, show='headings')
+	for column in columns:
+		tree.column(f'{column}', anchor='center')
+		tree.heading(f'{column}', text=f'{column}')
+
+	tree.bind('<<TreeviewSelect>>', item_selected)
+	tree.pack()
+
+	Productos = [
+	['Cebada'],
+	['Girasol'],
+	['Maíz'],
+	['Soja'],
+	['Trigo']
+	]
+
+	# Cantidad de camiones por producto
+
+	for p in range(1,6):
+		cursor.execute(f'SELECT COUNT(NUM_CUPO) FROM CUPOS WHERE COD_PROD={p} AND ESTADO<>"P"')
+		Cant_cam = cursor.fetchone()
+		Cant_cam = ''.join( x for x in str(Cant_cam) if x not in chars)
+		Productos[p-1].append(str(Cant_cam))
+
+	# Peso neto total
 	
-	botonmenu=ttk.Button(Rep, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+	for p in range(1,6):
+		cursor.execute(f'SELECT SUM(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p} AND TARA<>0 GROUP BY COD_PROD')
+		Peso_n = cursor.fetchone()
+		if Peso_n!=None:
+			Peso_n = ''.join( x for x in str(Peso_n) if x not in chars)
+		else:
+			Peso_n = 0
+		Productos[p-1].append(str(Peso_n))
+
+	# Promedio peso neto
+
+	for p in range(1,6):
+		cursor.execute(f'SELECT AVG(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p} AND TARA<>0 AND ESTADO<>"R" GROUP BY COD_PROD')
+		Prom = cursor.fetchone()
+		if Prom!=None:
+			Prom = ''.join( x for x in str(Prom) if x not in chars)
+		else:
+			Prom = 0
+		Productos[p-1].append(str(Prom))
+
+	# Patentes
+
+	# Mayor
+
+	for p in range(1,6):
+		cursor.execute(f'SELECT PATENTE FROM CUPOS WHERE COD_PROD={p} AND (PESO_BRUTO-TARA) = (SELECT MAX(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p})')
+		Pat_may = cursor.fetchone()
+		if Pat_may!=None:
+			Pat_may = ''.join( x for x in str(Pat_may) if x not in chars)
+		else:
+			Pat_may = 0
+		Productos[p-1].append(str(Pat_may))
+
+	# Menor
+
+	for p in range(1,6):
+		cursor.execute(f'SELECT PATENTE FROM CUPOS WHERE COD_PROD={p} AND (PESO_BRUTO-TARA) = (SELECT MIN(PESO_BRUTO-TARA) FROM CUPOS WHERE COD_PROD={p} AND ESTADO="F")')
+		Pat_may = cursor.fetchone()
+		if Pat_may!=None:
+			Pat_may = ''.join( x for x in str(Pat_may) if x not in chars)
+		else:
+			Pat_may = 0
+		Productos[p-1].append(str(Pat_may))
+
+	for prod in Productos:
+		tree.insert('', tk.END, values=prod)
+
+	botonmenu=ttk.Button(Frame_tree, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(pady=20)
 
 def Download(pat, name):
 
