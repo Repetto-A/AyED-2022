@@ -112,8 +112,8 @@ def Alta_prod():
 
 	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="I"')
 	Productos_inactivos = cursor.fetchall()
-	if Productos_inactivos == None:
-		pass
+	if Productos_inactivos == []:
+		messagebox.showwarning("Aviso", "No hay productos por cargar!.")
 	else:
 		Frame_interior = tk.Frame(Alta_p)
 		Frame_interior.pack(side='top')
@@ -141,11 +141,15 @@ def Baja_prod():
 	Baja_p.pack_propagate(0)
 	ttk.Label(Baja_p, text="BAJA DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=20)
 
-	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	cursor.execute('SELECT COD_PRODUCTO, NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
 	Productos_cargados = cursor.fetchall()
-	if Productos_cargados == None:
-		pass
+
+	if Productos_cargados == []:
+		messagebox.showwarning("Aviso", "No hay productos cargados!.")
 	else:
+		cursor.execute('SELECT DISTINCT NOMBRE_PRODUCTO FROM PRODUCTOS LEFT JOIN CUPOS WHERE PRODUCTOS.ESTADO="A" AND COD_PRODUCTO<>(COD_PROD)')
+		Productos_cargados = cursor.fetchall()
+
 		Frame_interior = tk.Frame(Baja_p)
 		Frame_interior.pack(side='top')
 		Listado = ttk.Combobox(
@@ -157,9 +161,8 @@ def Baja_prod():
 
 		botonaceptar=ttk.Button(Frame_interior, text="Aceptar", width=10, command=lambda:Enviar('Baja'))
 		botonaceptar.pack(padx=5, pady=5, side='right')
-
-	botonv=ttk.Button(Baja_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
-	botonv.pack(padx=5, pady=50, side= 'bottom')
+		botonv=ttk.Button(Baja_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
+		botonv.pack(padx=5, pady=50, side= 'bottom')
 
 def Consulta_prod():
 	global root, Menu_p, Packed, Consulta_p, Listado
@@ -174,8 +177,8 @@ def Consulta_prod():
 
 	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
 	Productos_cargados = cursor.fetchall()
-	if Productos_cargados == None:
-		pass
+	if Productos_cargados == []:
+		messagebox.showwarning("Aviso", "No hay productos cargados!.")
 	else:
 		Listado = ttk.Combobox(
 			master=Consulta_p,
@@ -199,12 +202,12 @@ def Modifica_prod():
 	ttk.Label(Mod_p, text="MODIFICACIÓN DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=15)
 	ttk.Label(Mod_p, text="¿Qúe producto desea modificar?", font=("arial",15)).pack(padx=10, pady=10)
 
-	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	cursor.execute('SELECT DISTINCT NOMBRE_PRODUCTO FROM PRODUCTOS LEFT JOIN CUPOS WHERE PRODUCTOS.ESTADO="A" AND COD_PRODUCTO<>(COD_PROD)')
 	Productos_cargados = cursor.fetchall()
 	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="I"')
 	Productos_inactivos = cursor.fetchall()
-	if Productos_cargados == None or Productos_inactivos == None:
-		pass
+	if Productos_cargados == [] or Productos_inactivos == []:
+		messagebox.showwarning("Aviso", "No hay al menos un producto cargado y uno por cargar!.")
 	else:
 		Frame_interior = tk.Frame(Mod_p)
 		Frame_interior.pack(side='top')
@@ -788,14 +791,18 @@ def Calidad(Patente):
 		Cod_prod = ''.join( x for x in str(Cod_prod) if x not in chars)
 		cursor.execute(f'SELECT * FROM RUBROS_ASIGNADOS WHERE COD_PROD={Cod_prod} ')
 		Rubros_por_validar = cursor.fetchall()
-		Frame_Rubros = tk.Frame(Cal)
-		Frame_Rubros.pack(side='bottom',expand=True,fill='both')
-		rubros = Listar_rubros(Rubros_por_validar)
-		cont_rubros = 0
-		Validar_rubro('',Patente)
-		cursor.execute(f'SELECT FECHA FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="P"')
-		Fecha = cursor.fetchone()
-		botonmenu=ttk.Button(Frame_Rubros, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5,side='bottom')
+		if Rubros_por_validar == []:
+			messagebox.showwarning("Error",f"El camión no puede ingresar a calidad si antes no se crean rubros para el producto!")
+			Volver_Menu()
+		else:
+			Frame_Rubros = tk.Frame(Cal)
+			Frame_Rubros.pack(side='bottom',expand=True,fill='both')
+			rubros = Listar_rubros(Rubros_por_validar)
+			cont_rubros = 0
+			Validar_rubro('',Patente)
+			cursor.execute(f'SELECT FECHA FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="P"')
+			Fecha = cursor.fetchone()
+			botonmenu=ttk.Button(Frame_Rubros, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5,side='bottom')
 		
 def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
 	global cont_rubros, Frame_boolean, Frame_num
@@ -986,14 +993,6 @@ def Reportes():
 	ttk.Label(Rep, text=f"Cantidad de cupos otorgados: {Cant_Cupos}", font=("arial",12)).pack(padx=10, pady=10)
 	ttk.Label(Rep, text=f"Cantidad de camiones recibidos: {Cant_Rec}", font=("arial",12)).pack(padx=10, pady=10)
 	Crear_arbol()
-
-	#PatMenorImg = Image.open("PatenteMenor.png")
-	#PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
-	#PatMenor = ImageTk.PhotoImage(PatMenorImg)
-	#MarcoPatMenor= ttk.Label(Rep, image=PatMenor)
-	#MarcoPatMenor.image = PatMenor
-	#MarcoPatMenor.pack(padx=5, pady=5)
-	#botonmenu=ttk.Button(Rep, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
 
 def item_selected(event):
