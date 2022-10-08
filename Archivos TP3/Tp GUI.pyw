@@ -886,14 +886,13 @@ def PBruto(Patente):
 	ttk.Label(Frame_pb, text="Peso bruto:", font=("arial",10)).pack(padx=5,pady=10, side='left', anchor='e')
 	ttk.Entry(Frame_pb,textvariable=PB).pack(padx=5,pady=10,side='right', anchor='w')
 
-	botonenviar=ttk.Button(PBru, text="Enviar", width=10, command=lambda:Validar_pb(Patente,PB.get())) # Agregar el command que lo verifique
+	botonenviar=ttk.Button(PBru, text="Enviar", width=10, command=lambda:Validar_pb(Patente,PB.get()))
 	botonenviar.pack(padx=5, pady=10)	
 
 	botonmenu=ttk.Button(PBru, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
 def Validar_pb(Patente,Peso_Bruto):
 	try:
-		float(Peso_Bruto)
 		if float(Peso_Bruto)<2:
 			messagebox.showwarning("Error", "El peso bruto no puede ser menor a 2kg")
 		elif float(Peso_Bruto) > 50000:
@@ -918,7 +917,43 @@ def Tara(Patente):
 	Tar.pack_propagate(0)
 	Packed="Tar"
 	Title=ttk.Label(Tar, text="REGISTRAR TARA", font=("arial",20)).pack(padx=10, pady=10)
+
+	cursor.execute(f'SELECT PESO_BRUTO FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="B"')
+	Pbruto = cursor.fetchone()
+	if Pbruto == None:
+		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que ingresar la tara hoy!\n¿Desea ingresar otro camión?")
+		if valor == 'yes':
+			Menu_Pat('Tara')
+		else:
+			Volver_Menu()
+	chars = "(),'"
+	Pbruto = ''.join( x for x in str(Pbruto) if x not in chars)
+	Frame_tara = tk.Frame(Tar)
+	Frame_tara.pack()
+	Tara = tk.StringVar()
+	ttk.Label(Frame_tara, text="Tara:", font=("arial",10)).pack(padx=5,pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_tara,textvariable=Tara).pack(padx=5,pady=10,side='right', anchor='w')
+
+	botonenviar=ttk.Button(Tar, text="Enviar", width=10, command=lambda:Validar_tara(Patente,Tara.get(),Pbruto))
+	botonenviar.pack(padx=5, pady=10)
 	botonmenu=ttk.Button(Tar, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+
+def Validar_tara(Patente,Tara,Peso_Bruto):
+	try:
+		if float(Tara)<1:
+			messagebox.showwarning("Error", "La tara no puede ser menor a 1kg!")
+		elif float(Tara) > float(Peso_Bruto):
+			messagebox.showwarning("Error", "La tara no puede ser mayor al peso bruto!")
+		else:
+			cursor.execute(f'UPDATE CUPOS SET TARA={Tara},ESTADO="F" WHERE PATENTE="{Patente}" AND ESTADO="B"')
+			conn.commit()
+			valor=messagebox.askquestion("Tara asignada correctamente", "¿Desea ingresar la de otro camión?")
+			if valor == 'yes':
+				Menu_Pat('Tara')
+			else:
+				Volver_Menu()
+	except:
+		messagebox.showwarning("Error", "La tara debe contener solamente números.")
 
 def Reportes():
 	global Packed, Rep
