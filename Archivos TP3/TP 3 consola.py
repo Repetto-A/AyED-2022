@@ -188,87 +188,90 @@ class Cupo():
                 CantCupos+=1
                 if(self.Estado!='P'):
                     CantRec+=1
-                    if(self.Cod=='1'):
-                        PnCamCeb= int(self.Bruto) - int(self.Tara)
-                        AcumCeb=AcumCeb + PnCamCeb
-                        ContCebada+=1
-                        if(ContCebada==1):
-                            MenorDescCeb= PnCamCeb
-                            MayorDescCeb= PnCamCeb
-                            PatMayCeb=self.Patente.strip()
-                            PatMenCeb=self.Patente.strip()
-                        else:
-                            if(PnCamCeb<MenorDescCeb):
+                    if(self.Estado=='R'):
+                        pass
+                    else:
+                        if(self.Cod=='1'):
+                            PnCamCeb= int(self.Bruto) - int(self.Tara)
+                            AcumCeb=AcumCeb + PnCamCeb
+                            ContCebada+=1
+                            if(ContCebada==1):
                                 MenorDescCeb= PnCamCeb
-                                PatMenCeb=self.Patente.strip()
-                            if(PnCamCeb>MayorDescCeb):
                                 MayorDescCeb= PnCamCeb
                                 PatMayCeb=self.Patente.strip()
-                    elif(self.Cod=='2'):
-                        PnCamGir= int(self.Bruto) - int(self.Tara)
-                        AcumGir=AcumGir + PnCamGir
-                        ContGirasol+=1
-                        if(ContGirasol==1):
-                            MenorDescGir= PnCamGir
-                            MayorDescGir= PnCamGir
-                            PatMayGir=self.Patente.strip()
-                            PatMenGir=self.Patente.strip()
-                        else:
-                            if(PnCamGir<MenorDescGir):
+                                PatMenCeb=self.Patente.strip()
+                            else:
+                                if(PnCamCeb<MenorDescCeb):
+                                    MenorDescCeb= PnCamCeb
+                                    PatMenCeb=self.Patente.strip()
+                                if(PnCamCeb>MayorDescCeb):
+                                    MayorDescCeb= PnCamCeb
+                                    PatMayCeb=self.Patente.strip()
+                        elif(self.Cod=='2'):
+                            PnCamGir= int(self.Bruto) - int(self.Tara)
+                            AcumGir=AcumGir + PnCamGir
+                            ContGirasol+=1
+                            if(ContGirasol==1):
                                 MenorDescGir= PnCamGir
-                                PatMenGir=self.Patente.strip()
-                            if(PnCamGir>MayorDescGir):
                                 MayorDescGir= PnCamGir
                                 PatMayGir=self.Patente.strip()
-                    elif(self.Cod=='3'):
-                        PnCamMaiz= int(self.Bruto) - int(self.Tara)
-                        AcumMaiz=AcumMaiz + PnCamMaiz
-                        ContMaiz+=1
-                        MenorDescMaiz= PnCamMaiz
-                        if(ContMaiz==1):
+                                PatMenGir=self.Patente.strip()
+                            else:
+                                if(PnCamGir<MenorDescGir):
+                                    MenorDescGir= PnCamGir
+                                    PatMenGir=self.Patente.strip()
+                                if(PnCamGir>MayorDescGir):
+                                    MayorDescGir= PnCamGir
+                                    PatMayGir=self.Patente.strip()
+                        elif(self.Cod=='3'):
+                            PnCamMaiz= int(self.Bruto) - int(self.Tara)
+                            AcumMaiz=AcumMaiz + PnCamMaiz
+                            ContMaiz+=1
                             MenorDescMaiz= PnCamMaiz
-                            MayorDescMaiz= PnCamMaiz
-                            PatMayMaiz=self.Patente.strip()
-                            PatMenMaiz=self.Patente.strip()
-                        else:
-                            if(PnCamMaiz<MenorDescMaiz):
+                            if(ContMaiz==1):
                                 MenorDescMaiz= PnCamMaiz
-                                PatMenMaiz=self.Patente.strip()
-                            if(PnCamMaiz>MayorDescMaiz):
                                 MayorDescMaiz= PnCamMaiz
                                 PatMayMaiz=self.Patente.strip()
-                    elif(self.Cod=='4'):
-                        PnCamSoja= int(self.Bruto) - int(self.Tara)
-                        AcumSoja=AcumSoja + PnCamSoja
-                        ContSoja+=1
-                        if(ContSoja==1):
-                            MenorDescSoja= PnCamSoja
-                            MayorDescSoja= PnCamSoja
-                            PatMaySoja=self.Patente.strip()
-                            PatMenSoja=self.Patente.strip()
-                        else:
-                            if(PnCamSoja<MenorDescSoja):
+                                PatMenMaiz=self.Patente.strip()
+                            else:
+                                if(PnCamMaiz<MenorDescMaiz):
+                                    MenorDescMaiz= PnCamMaiz
+                                    PatMenMaiz=self.Patente.strip()
+                                if(PnCamMaiz>MayorDescMaiz):
+                                    MayorDescMaiz= PnCamMaiz
+                                    PatMayMaiz=self.Patente.strip()
+                        elif(self.Cod=='4'):
+                            PnCamSoja= int(self.Bruto) - int(self.Tara)
+                            AcumSoja=AcumSoja + PnCamSoja
+                            ContSoja+=1
+                            if(ContSoja==1):
                                 MenorDescSoja= PnCamSoja
-                                PatMenSoja=self.Patente.strip()
-                            if(PnCamSoja>MayorDescSoja):
                                 MayorDescSoja= PnCamSoja
                                 PatMaySoja=self.Patente.strip()
-                    elif(self.Cod=='5'):
-                        PnCamTrigo= int(self.Bruto) - int(self.Tara)
-                        AcumTrigo= AcumTrigo + PnCamTrigo
-                        ContTrigo+=1
-                        if(ContTrigo==1):
-                            MenorDescTrigo= PnCamTrigo
-                            MayorDescTrigo= PnCamTrigo
-                            PatMayTrigo=self.Patente.strip()
-                            PatMenTrigo=self.Patente.strip()
-                        else:
-                            if(PnCamTrigo<MenorDescTrigo):
+                                PatMenSoja=self.Patente.strip()
+                            else:
+                                if(PnCamSoja<MenorDescSoja):
+                                    MenorDescSoja= PnCamSoja
+                                    PatMenSoja=self.Patente.strip()
+                                if(PnCamSoja>MayorDescSoja):
+                                    MayorDescSoja= PnCamSoja
+                                    PatMaySoja=self.Patente.strip()
+                        elif(self.Cod=='5'):
+                            PnCamTrigo= int(self.Bruto) - int(self.Tara)
+                            AcumTrigo= AcumTrigo + PnCamTrigo
+                            ContTrigo+=1
+                            if(ContTrigo==1):
                                 MenorDescTrigo= PnCamTrigo
-                                PatMenTrigo=self.Patente.strip()
-                            if(PnCamTrigo>MayorDescTrigo):
                                 MayorDescTrigo= PnCamTrigo
                                 PatMayTrigo=self.Patente.strip()
+                                PatMenTrigo=self.Patente.strip()
+                            else:
+                                if(PnCamTrigo<MenorDescTrigo):
+                                    MenorDescTrigo= PnCamTrigo
+                                    PatMenTrigo=self.Patente.strip()
+                                if(PnCamTrigo>MayorDescTrigo):
+                                    MayorDescTrigo= PnCamTrigo
+                                    PatMayTrigo=self.Patente.strip()
         if(ContCebada!=0):
             PromCamCeb=AcumCeb/ContCebada
         if(ContGirasol!=0):

@@ -1,15 +1,17 @@
 from ast import Sub
-from struct import unpack
 from telnetlib import X3PAD
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import Entry, messagebox
 import os, pickle, os.path,sys,datetime,io
 from datetime import date
-from turtle import left, right
 from colorama import init, Fore, Back, Style
 from notifypy import Notify
 import requests
+from PIL import ImageTk, Image
+import sqlite3
+from tkcalendar import Calendar,DateEntry
+from datetime import datetime
 
 def darkstyle(root):
    
@@ -20,10 +22,505 @@ def darkstyle(root):
     style.configure("Togglettk.Button", foreground='white')
     return style
 
+def conn_bbdd():
+	global conn, cursor
+
+	if not os.path.exists(Rutabbdd):
+
+		conn = sqlite3.connect(Rutabbdd)
+		cursor = conn.cursor()
+		
+		cursor.execute('''CREATE TABLE PRODUCTOS 
+			(COD_PRODUCTO INTEGER PRIMARY KEY AUTOINCREMENT,
+			NOMBRE_PRODUCTO VARCHAR(10) UNIQUE NOT NULL,
+			ESTADO VARCHAR(1) NOT NULL)''')
+
+		cursor.execute('''CREATE TABLE CUPOS 
+			(NUM_CUPO INTEGER PRIMARY KEY AUTOINCREMENT,
+			PATENTE VARCHAR(7) NOT NULL,
+			COD_PROD INTEGER NOT NULL,
+			ESTADO VARCHAR(1) NOT NULL,
+			FECHA DATE NOT NULL,
+			PESO_BRUTO DECIMAL(5,2) NOT NULL,
+			TARA DECIMAL(5,2) NOT NULL,
+			FOREIGN KEY(COD_PROD) REFERENCES PRODUCTOS(COD_PRODUCTO))''')
+
+		cursor.execute('''CREATE TABLE RUBROS 
+			(COD_RUBRO INTEGER PRIMARY KEY NOT NULL CHECK (LENGTH(COD_RUBRO)>=1),
+			NOMBRE_RUBRO VARCHAR(30) NOT NULL CHECK (LENGTH(NOMBRE_RUBRO)>=1))''')
+
+		cursor.execute('''CREATE TABLE RUBROS_ASIGNADOS 
+			(COD_RUB INTEGER NOT NULL,
+			COD_PROD INTEGER NOT NULL,
+			TIPO VARCHAR(7) NOT NULL,
+			VALORES VARCHAR(6) NOT NULL,
+			FOREIGN KEY(COD_RUB) REFERENCES RUBROS(COD_RUBRO)
+			FOREIGN KEY(COD_PROD) REFERENCES PRODUCTOS(COD_PRODUCTO))''')
+
+		cursor.execute('''CREATE TABLE SILOS 
+			(COD_SILO INTEGER PRIMARY KEY NOT NULL CHECK (LENGTH(COD_SILO)>=1),
+			COD_PROD INTEGER UNIQUE NOT NULL,
+			NOMBRE_SILO VARCHAR(30) UNIQUE NOT NULL CHECK (LENGTH(NOMBRE_SILO)>=1),
+			STOCK_SILO DECIMAL(7,2) NOT NULL,
+			FOREIGN KEY(COD_PROD)REFERENCES PRODUCTOS(COD_PRODUCTO))''')
+
+		Lista_productos = [
+		('CEBADA','I'),
+		('GIRASOL','I'),
+		('MAÍZ','I'),
+		('SOJA','I'),
+		('TRIGO','I')
+		]
+
+		cursor.executemany('INSERT INTO PRODUCTOS VALUES(NULL,?,?)', Lista_productos)
+		conn.commit()
+
+	else:
+		conn = sqlite3.connect(Rutabbdd)
+		cursor = conn.cursor()
+
+def Enviar(origen):
+	global Listado, Listado2
+
+	Prod_seleccionado = Listado.get()
+	if origen == 'Alta':
+		cursor.execute(f'UPDATE PRODUCTOS SET ESTADO="A" WHERE NOMBRE_PRODUCTO="{Prod_seleccionado}"')
+		Alta_prod()
+		messagebox.showinfo("Alta correcta", "Producto dado de alta correctamente!")
+	elif origen == 'Baja':
+		cursor.execute(f'UPDATE PRODUCTOS SET ESTADO="I" WHERE NOMBRE_PRODUCTO="{Prod_seleccionado}"')
+		Baja_prod()
+		messagebox.showinfo("Alta correcta", "Producto dado de baja correctamente!")
+	elif origen == 'Mod':
+		Prod_seleccionado2 = Listado2.get()
+		cursor.execute(f'UPDATE PRODUCTOS SET ESTADO="A" WHERE NOMBRE_PRODUCTO="{Prod_seleccionado2}"')
+		cursor.execute(f'UPDATE PRODUCTOS SET ESTADO="I" WHERE NOMBRE_PRODUCTO="{Prod_seleccionado}"')
+		Modifica_prod()
+		messagebox.showinfo("Modificación correcta", "Producto modificado correctamente!")
+	conn.commit()
+
+def Listado_silos():
+	pass
+
+def Alta_prod():
+	global root, Menu_p, Packed, Alta_p, Listado
+
+	Unpack()
+	Alta_p=tk.Frame(root)
+	Alta_p.pack(fill="both", expand=True)
+	Packed="Alta_p"
+	Alta_p.config(width=800, height=500, padx=5, pady=5)
+	Alta_p.pack_propagate(0)
+	ttk.Label(Alta_p, text="ALTA DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=20)
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="I"')
+	Productos_inactivos = cursor.fetchall()
+	if Productos_inactivos == None:
+		pass
+	else:
+		Frame_interior = tk.Frame(Alta_p)
+		Frame_interior.pack(side='top')
+		Listado = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=Productos_inactivos
+			)
+		Listado.pack(padx=5, pady=5, side='left')
+
+		botonaceptar=ttk.Button(Frame_interior, text="Aceptar", width=10, command=lambda:Enviar('Alta'))
+		botonaceptar.pack(padx=5, pady=5, side='right')
+
+	botonv=ttk.Button(Alta_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
+	botonv.pack(padx=5, pady=50, side= 'bottom')
+
+def Baja_prod():
+	global root, Menu_p, Packed, Baja_p, Listado
+
+	Unpack()
+	Baja_p=tk.Frame(root)
+	Baja_p.pack(fill="both", expand=True)
+	Packed="Baja_p"
+	Baja_p.config(width=800, height=500, padx=5, pady=5)
+	Baja_p.pack_propagate(0)
+	ttk.Label(Baja_p, text="BAJA DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=20)
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+	if Productos_cargados == None:
+		pass
+	else:
+		Frame_interior = tk.Frame(Baja_p)
+		Frame_interior.pack(side='top')
+		Listado = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=Productos_cargados
+			)
+		Listado.pack(padx=5, pady=5, side='left')
+
+		botonaceptar=ttk.Button(Frame_interior, text="Aceptar", width=10, command=lambda:Enviar('Baja'))
+		botonaceptar.pack(padx=5, pady=5, side='right')
+
+	botonv=ttk.Button(Baja_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
+	botonv.pack(padx=5, pady=50, side= 'bottom')
+
+def Consulta_prod():
+	global root, Menu_p, Packed, Consulta_p, Listado
+
+	Unpack()
+	Consulta_p=tk.Frame(root)
+	Consulta_p.pack(fill="both", expand=True)
+	Packed="Consulta_p"
+	Consulta_p.config(width=800, height=500, padx=5, pady=5)
+	Consulta_p.pack_propagate(0)
+	ttk.Label(Consulta_p, text="CONSULTA DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=20)
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+	if Productos_cargados == None:
+		pass
+	else:
+		Listado = ttk.Combobox(
+			master=Consulta_p,
+			state="readonly",
+			values=Productos_cargados
+			)
+		Listado.pack(padx=5, pady=5)
+
+	botonv=ttk.Button(Consulta_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
+	botonv.pack(padx=5, pady=50, side= 'bottom')
+
+def Modifica_prod():
+	global root, Menu_p, Packed, Mod_p, Listado, Listado2
+
+	Unpack()
+	Mod_p=tk.Frame(root)
+	Mod_p.pack(fill="both", expand=True)
+	Packed="Mod_p"
+	Mod_p.config(width=800, height=500, padx=5, pady=5)
+	Mod_p.pack_propagate(0)
+	ttk.Label(Mod_p, text="MODIFICACIÓN DE PRODUCTOS", font=("arial",20)).pack(padx=10, pady=15)
+	ttk.Label(Mod_p, text="¿Qúe producto desea modificar?", font=("arial",15)).pack(padx=10, pady=10)
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="I"')
+	Productos_inactivos = cursor.fetchall()
+	if Productos_cargados == None or Productos_inactivos == None:
+		pass
+	else:
+		Frame_interior = tk.Frame(Mod_p)
+		Frame_interior.pack(side='top')
+		Listado = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=Productos_cargados
+			)
+		Listado.pack(padx=5, pady=20)
+
+		ttk.Label(Frame_interior, text="¿Por cuál lo desea modificar?", font=("arial",15)).pack(padx=10, pady=20)
+
+		Listado2 = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=Productos_inactivos
+			)
+		Listado2.pack(padx=5, pady=10)
+
+		botonaceptar=ttk.Button(Frame_interior, text="Aceptar", width=10, command=lambda:Enviar('Mod'))
+		botonaceptar.pack(padx=5, pady=60)
+
+
+	botonv=ttk.Button(Mod_p, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Submenu_Prod)
+	botonv.pack(padx=5, pady=5,side= 'bottom')
+
 def salirAplicacion():
 	valor=messagebox.askquestion("Salir", "¿Desea salir de la aplicación?")
 	if valor=="yes":
 		root.destroy()
+
+def Alta_Rubros():
+	global root, Menu_p, Packed, Alta_r
+
+	Unpack()
+	Alta_r=tk.Frame(root)
+	Alta_r.pack(fill="both", expand=True)
+	Packed="Alta_r"
+	Alta_r.config(width=800, height=500, padx=5, pady=5)
+	Alta_r.pack_propagate(0)
+	ttk.Label(Alta_r, text="ALTA DE RUBROS", font=("arial",20)).pack(padx=10, pady=20)
+
+	Frame_interior = tk.Frame(Alta_r)
+	Frame_interior.pack(side='top')
+	Cod = tk.StringVar()
+	Nombre = tk.StringVar()
+	ttk.Label(Frame_interior, text="Código: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_interior,textvariable=Cod).pack(padx=10, pady=10,side='right', anchor='w')
+	Frame_interior2 = tk.Frame(Alta_r)
+	Frame_interior2.pack(side='top')
+	ttk.Label(Frame_interior2, text="Nombre:", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_interior2,textvariable=Nombre).pack(padx=10, pady=10,side='right', anchor='w')
+	botonaceptar=ttk.Button(Alta_r, text="Aceptar", width=10, command=lambda:Enviar_r(Cod.get(),Nombre.get()))
+	botonaceptar.pack(padx=5, pady=5)
+
+	botonv=ttk.Button(Alta_r, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Administraciones)
+	botonv.pack(padx=5, pady=50, side= 'bottom')
+
+def Enviar_r(Cod,Nombre):
+	Bandera = True
+	if Cod.isdigit() == False:
+		messagebox.showwarning("Error", "El código solo puede estar formado por números.")
+		Bandera = False
+	if Nombre.replace(' ','').isalpha() == False:
+		messagebox.showwarning("Error", "El nombre solo puede estar formado por letras.")
+		Bandera = False
+	cursor.execute(f'SELECT COD_RUBRO FROM RUBROS WHERE NOMBRE_RUBRO="{Nombre}"')
+	Nombreusado = cursor.fetchone()
+	chars = '(),'
+	if Nombreusado != None:
+		Nombreusado = ''.join( x for x in str(Nombreusado) if x not in chars)
+		messagebox.showwarning("Error", f"El rubro {Nombre} ya se encuentra cargado con el código {Nombreusado}.")
+		Bandera = False
+	cursor.execute(f'SELECT NOMBRE_RUBRO FROM RUBROS WHERE COD_RUBRO="{Cod}"')
+	Codusado = cursor.fetchone()
+	if Codusado != None:
+		Codusado = ''.join( x for x in str(Codusado) if x not in chars)
+		messagebox.showwarning("Error", f"El código {Cod} ya se encuentra utilizado con el rubro {Codusado}.")
+		Bandera = False
+	if Bandera == True:
+		Nombre = Nombre.capitalize()
+		cursor.execute(F'INSERT INTO RUBROS VALUES({Cod},"{Nombre}")')
+		conn.commit()
+		Alta_Rubros()
+		messagebox.showinfo("Alta correcta", "Rubro dado de alta correctamente!")
+
+def Alta_silo():
+
+	global root, Menu_p, Packed, Alta_s, Listado
+
+	Unpack()
+	Alta_s=tk.Frame(root)
+	Alta_s.pack(fill="both", expand=True)
+	Packed="Alta_s"
+	Alta_s.config(width=800, height=500, padx=5, pady=5)
+	Alta_s.pack_propagate(0)
+	ttk.Label(Alta_s, text="ALTA DE SILOS", font=("arial",20)).pack(padx=10, pady=20)
+
+	Frame_interior = tk.Frame(Alta_s)
+	Frame_interior.pack(side='top')
+	Cod = tk.StringVar()
+	Nombre = tk.StringVar()
+	ttk.Label(Frame_interior, text="Código: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_interior,textvariable=Cod).pack(padx=10, pady=10,side='right', anchor='w')
+	Frame_nombre = tk.Frame(Alta_s)
+	Frame_nombre.pack(side='top')
+	ttk.Label(Frame_nombre, text="Nombre:", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+	ttk.Entry(Frame_nombre,textvariable=Nombre).pack(padx=10, pady=10,side='right', anchor='w')
+
+	Frame_interior2 = tk.Frame(Alta_s)
+	Frame_interior2.pack(side='top')
+	ttk.Label(Frame_interior2, text="Producto:", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+	if Productos_cargados == None:
+		pass
+	else:
+		Listado = ttk.Combobox(
+			master=Frame_interior2,
+			state="readonly",
+			values=Productos_cargados
+			)
+		Listado.pack(padx=10, pady=10,side='right', anchor='w')
+
+	Frame_interior3 = tk.Frame(Alta_s)
+	Frame_interior3.pack(side='top', expand=True)
+
+
+	botonaceptar=ttk.Button(Frame_interior3, text="Aceptar", width=10, command=lambda:Enviar_s(Cod.get(),Listado.get(),Nombre.get()))
+	botonaceptar.pack(padx=5, pady=25, side='left')
+
+	botonv=ttk.Button(Alta_s, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Administraciones)
+	botonv.pack(padx=5, pady=50, side= 'bottom')
+
+def Enviar_s(Cod, Producto, Nombre):
+	Bandera = True
+	if Cod.isdigit() == False:
+		messagebox.showwarning("Error", "El código solo puede estar formado por números.")
+		Bandera = False
+	if Nombre.replace(' ','').isalpha() == False:
+		messagebox.showwarning("Error", "El nombre solo puede estar formado por letras.")
+		Bandera = False
+	if Producto =='':
+		messagebox.showwarning("Error", "Debe seleccionar un producto.")
+		Bandera = False	
+	cursor.execute(f'SELECT COD_SILO FROM SILOS WHERE NOMBRE_SILO="{Nombre.capitalize()}"')
+	Silo_existente = cursor.fetchone()
+	chars = '(),'
+	if Silo_existente != None:
+		Silo_existente = ''.join( x for x in str(Silo_existente) if x not in chars)
+		messagebox.showwarning("Error", f"El Silo {Nombre.capitalize()} ya se encuentra cargado con el código {Silo_existente}.")
+		Bandera = False
+	cursor.execute(f'SELECT NOMBRE_SILO FROM SILOS WHERE COD_SILO="{Cod}"')
+	Codusado = cursor.fetchone()
+	if Codusado != None:
+		Codusado = ''.join( x for x in str(Codusado) if x not in chars)
+		messagebox.showwarning("Error", f"El código {Cod} ya se encuentra utilizado con el {Codusado}.")
+		Bandera = False
+	cursor.execute(f'SELECT COD_PRODUCTO FROM PRODUCTOS WHERE NOMBRE_PRODUCTO="{Producto}"')
+	CodP = cursor.fetchone()
+	CodP = ''.join( x for x in str(CodP) if x not in chars)
+	cursor.execute(f'SELECT NOMBRE_SILO FROM SILOS WHERE COD_PROD="{CodP}"')
+	Producto_existente = cursor.fetchone()
+	if Producto_existente != None:
+		Producto_existente = ''.join( x for x in str(Producto_existente) if x not in chars)
+		messagebox.showwarning("Error", f"El producto {Producto} ya tiene un silo llamado {Producto_existente}.")
+		Bandera = False
+	if Bandera == True and CodP != None:
+		cursor.execute(f'INSERT INTO SILOS VALUES({Cod},"{CodP}","{Nombre.capitalize()}",0)')
+		conn.commit()
+		Alta_silo()
+		messagebox.showinfo("Alta correcta", "Silo dado de alta correctamente!")
+
+def Asignar_Rubros():
+	global root, Menu_p, Packed, Asig_r, Listado, Listado2, subpacked
+
+	Unpack()
+	Asig_r=tk.Frame(root)
+	Asig_r.pack(fill="both", expand=True)
+	Packed="Asig_r"
+	Asig_r.config(width=800, height=500, padx=5, pady=5)
+	Asig_r.pack_propagate(0)
+	ttk.Label(Asig_r, text="ASIGNACIÓN DE RUBROS", font=("arial",20)).pack(padx=10, pady=5)
+	ttk.Label(Asig_r, text="¿Qúe rubro desea asignar?", font=("arial",15)).pack(padx=10, pady=5)
+
+	cursor.execute('SELECT NOMBRE_RUBRO FROM RUBROS')
+	Rubros = cursor.fetchall()
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+	if Rubros == None or Productos_cargados == None:
+		pass
+	else:
+		chars = '(),'
+		Rubros = map(lambda elem: ''.join( x for x in elem if x not in chars),Rubros)
+		Frame_interior = tk.Frame(Asig_r)
+		Frame_interior.pack(side='top')
+		Rub = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=list(Rubros),
+			width=25
+			)
+		Rub.pack(padx=5, pady=5)
+
+		ttk.Label(Frame_interior, text="¿A qué producto se lo desea asignar?", font=("arial",15)).pack(padx=10, pady=5)
+
+		Prod = ttk.Combobox(
+			master=Frame_interior,
+			state="readonly",
+			values=Productos_cargados,
+			width=25
+			)
+		Prod.pack(padx=5, pady=5)
+
+		tiporubro = tk.IntVar()
+		ttk.Label(Frame_interior, text="¿Qué tipo de valor recibirá este producto?", font=("arial",15)).pack(padx=10, pady=5)
+		Frame_rb = tk.Frame(Asig_r)
+		Frame_rb.pack(side='top')
+		subpacked = ''
+		ttk.Radiobutton(Frame_rb, text=("Valor numérico".center(15)), variable=tiporubro, value=1, command=lambda:Tipo_rub(Rub.get(),Prod.get(),tiporubro.get())).pack(side='left', anchor='e')
+		ttk.Radiobutton(Frame_rb, text=("Sí o no".center(15)), variable=tiporubro, value=2, command=lambda:Tipo_rub(Rub.get(),Prod.get(),tiporubro.get())).pack(side='right', anchor='w')
+
+
+	botonv=ttk.Button(Asig_r, text="VOLVER AL MENÚ ANTERIOR", width=29, command=Administraciones)
+	botonv.pack(padx=5, pady=5,side= 'bottom')
+
+def Tipo_rub(Rubro,Producto,Eleccion):
+	global subpacked, ContenedorNum, ContenedorBoolean
+
+	if(subpacked == 'Valnum'):
+		ContenedorNum.pack_forget()
+	elif(subpacked == 'Boolean'):
+		ContenedorBoolean.pack_forget()
+	Min = tk.StringVar()
+	Max = tk.StringVar()
+	Valores = tk.StringVar()
+
+	if Eleccion == 1: # Valnum
+
+		ContenedorNum = tk.Frame(Asig_r)
+		ContenedorNum.pack(side='top')
+
+		subpacked = 'Valnum'
+
+		ttk.Label(ContenedorNum, text="Ingrese los valores mínimos y máximos en los que el rubro es aceptado", font=("arial",15)).pack(padx=10, pady=5)
+
+		Frame_vn = tk.Frame(ContenedorNum)	
+		Frame_vn.pack(side='top')
+		Frame_vn2 = tk.Frame(ContenedorNum)	
+		Frame_vn2.pack(side='top')
+		ttk.Label(Frame_vn, text="Valor mínimo: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+		ttk.Entry(Frame_vn,textvariable=Min).pack(padx=10, pady=10,side='right', anchor='w')
+		ttk.Label(Frame_vn2, text="Valor máximo: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+		ttk.Entry(Frame_vn2,textvariable=Max).pack(padx=10, pady=10,side='right', anchor='w')
+
+		botonenviar=ttk.Button(ContenedorNum, text="Enviar", width=10, command=lambda:Enviar_valores(Rubro,Producto,Min.get(),Max.get()))
+		botonenviar.pack(padx=5, pady=5)
+
+	
+	elif Eleccion ==2: # Booleano
+
+		ContenedorBoolean = tk.Frame(Asig_r)
+		ContenedorBoolean.pack(side='top')
+
+		subpacked = 'Boolean'
+
+		ttk.Label(ContenedorBoolean, text="¿En qué caso se aceptará el rubro?", font=("arial",15)).pack(padx=10, pady=15)
+
+		Frame_boolean = tk.Frame(ContenedorBoolean)	
+		Frame_boolean.pack(side='top')
+
+		ttk.Radiobutton(Frame_boolean, text="Sí", variable=Valores, value='True').pack(padx=5,side='left', anchor='e')
+		ttk.Radiobutton(Frame_boolean, text="No", variable=Valores, value='False').pack(padx=5, side='right', anchor='w')
+
+		botonenviar=ttk.Button(ContenedorBoolean, text="Enviar", width=10, command=lambda:Enviar_valores(Rubro,Producto,Valores.get()))
+		botonenviar.pack(padx=10, pady=30)
+
+def Enviar_valores(Rubro,Producto,Valores,x=''):
+
+	Bandera = True
+	Tipo = 'Boolean'
+	if subpacked == 'Valnum':
+		if Valores.isdigit() == False or x.isdigit() == False:
+			messagebox.showwarning("Error","Los valores deben ser numéricos.")
+			Bandera = False
+		elif int(Valores)<0:
+			messagebox.showwarning("Error","El valor mínimo no puede ser menor a 0.")
+			Bandera = False
+		elif int(x)>100:
+			messagebox.showwarning("Error","El valor máximo no puede ser mayor a 100.")
+			Bandera = False
+		elif int(Valores)>int(x):
+			messagebox.showwarning("Error","El valor mínimo no puede ser mayor al máximo.")
+			Bandera = False
+		else:
+			Tipo = 'Numeric'
+			Valores = f'{Valores}-{x}'
+	cursor.execute(f'SELECT COD_RUBRO FROM RUBROS WHERE NOMBRE_RUBRO="{Rubro}"')
+	Cod_rubro = cursor.fetchone()
+	chars = '(),'
+	Cod_rubro = ''.join( x for x in str(Cod_rubro) if x not in chars)
+	cursor.execute(f'SELECT COD_PRODUCTO FROM PRODUCTOS WHERE NOMBRE_PRODUCTO="{Producto}"')
+	Cod_prod = cursor.fetchone()
+	Cod_prod = ''.join( x for x in str(Cod_prod) if x not in chars)
+	cursor.execute(f'SELECT * FROM RUBROS_ASIGNADOS WHERE COD_RUB={Cod_rubro} AND COD_PROD={Cod_prod}')
+	if cursor.fetchone() == None and Bandera == True:
+		cursor.execute(f'INSERT INTO RUBROS_ASIGNADOS VALUES ({Cod_rubro},{Cod_prod},"{Tipo}","{Valores}")')
+		conn.commit()
+		Asignar_Rubros()
+		messagebox.showinfo("Asignación correcta", f"Rubro asignado correctamente a {Producto.capitalize()}!")
+	else:
+		messagebox.showwarning("Error",f"{Rubro} ya fue asignado a {Producto.capitalize()}!.")
 
 def Administraciones():
 	global root, Adm, Menu_p, Packed, Submp
@@ -39,11 +536,11 @@ def Administraciones():
 	botona.pack(padx=5, pady=5)
 	botonb=ttk.Button(Adm, text="PRODUCTOS", width=29, command=Submenu_Prod)
 	botonb.pack(padx=5, pady=5)
-	botonc=ttk.Button(Adm, text="RUBROS", width=29)
+	botonc=ttk.Button(Adm, text="RUBROS", width=29, command=Alta_Rubros)
 	botonc.pack(padx=5, pady=5)
-	botond=ttk.Button(Adm, text="RUBROS POR PRODUCTO", width=29)
+	botond=ttk.Button(Adm, text="RUBROS POR PRODUCTO", width=29, command=Asignar_Rubros)
 	botond.pack(padx=5, pady=5)
-	botone=ttk.Button(Adm, text="SILOS", width=29)
+	botone=ttk.Button(Adm, text="SILOS", width=29, command=Alta_silo)
 	botone.pack(padx=5, pady=5)
 	botonf=ttk.Button(Adm, text="SUCURSALES", width=29, command=Notificacion)
 	botonf.pack(padx=5, pady=5)
@@ -62,13 +559,13 @@ def Submenu_Prod():
 	Submp.config(width=800, height=500, padx=5, pady=5)
 	Submp.pack_propagate(0)
 	ttk.Label(Submp, text="SUB-MENÚ PRODUCTOS", font=("arial",20)).pack(padx=10, pady=10)
-	botona=ttk.Button(Submp, text="ALTA", width=29)
+	botona=ttk.Button(Submp, text="ALTA", width=29, command=Alta_prod)
 	botona.pack(padx=5, pady=5)
-	botonb=ttk.Button(Submp, text="BAJA", width=29)
+	botonb=ttk.Button(Submp, text="BAJA", width=29, command=Baja_prod)
 	botonb.pack(padx=5, pady=5)
-	botonc=ttk.Button(Submp, text="CONSULTA", width=29)
+	botonc=ttk.Button(Submp, text="CONSULTA", width=29, command=Consulta_prod)
 	botonc.pack(padx=5, pady=5)
-	botond=ttk.Button(Submp, text="MODIFICACIÓN", width=29)
+	botond=ttk.Button(Submp, text="MODIFICACIÓN", width=29, command=Modifica_prod)
 	botond.pack(padx=5, pady=5)
 	botone=ttk.Button(Submp, text="VOLVER A ADMINISTRACIONES", width=29, command=Administraciones)
 	botone.pack(padx=5, pady=5)
@@ -106,13 +603,13 @@ def Menu():
 	boton7.pack(padx=5, pady=5)
 	boton8=ttk.Button(Menu_p, text="REPORTES", width=29, command=Reportes)
 	boton8.pack(padx=5, pady=5)
-	boton9=ttk.Button(Menu_p, text="LISTADO DE SILOS Y RECHAZOS", width=29, command=Listado)
+	boton9=ttk.Button(Menu_p, text="LISTADO DE SILOS Y RECHAZOS", width=29, command=Listado_silos)
 	boton9.pack(padx=5, pady=5)
 	boton0=ttk.Button(Menu_p, text="FIN DEL PROGRAMA", command=salirAplicacion, width=29)
 	boton0.pack(padx=5, pady=5)
 
 def Unpack():
-	global Packed, Menu_p, Submp, Adm, Pat, Cup, Rec, Cal
+	global Packed, Menu_p, Submp, Adm, Pat, Cup, Cal
 	
 	if(Packed=="Menu_p"):
 		Menu_p.pack_forget()
@@ -128,14 +625,26 @@ def Unpack():
 		Cal.pack_forget()
 	elif(Packed=="PBru"):
 		PBru.pack_forget()
-	elif(Packed=="Rec"):
-		Rec.pack_forget()
 	elif(Packed=="Des"):
 		Des.pack_forget()
 	elif(Packed=="Tar"):
 		Tar.pack_forget()
 	elif(Packed=="Rep"):
 		Rep.pack_forget()
+	elif(Packed=="Alta_p"):
+		Alta_p.pack_forget()
+	elif(Packed=="Baja_p"):
+		Baja_p.pack_forget()
+	elif(Packed=="Consulta_p"):
+		Consulta_p.pack_forget()
+	elif(Packed=="Mod_p"):
+		Mod_p.pack_forget()
+	elif(Packed=="Alta_r"):
+		Alta_r.pack_forget()
+	elif(Packed=="Alta_s"):
+		Alta_s.pack_forget()
+	elif(Packed=="Asig_r"):
+		Asig_r.pack_forget()
 
 def Menu_Pat(Op_menu):
 	global Pat, root, Patente, Packed, Menu_p
@@ -149,7 +658,7 @@ def Menu_Pat(Op_menu):
 	ttk.Label(Pat, text="INGRESO DE PATENTE", font=("arial",20)).pack(padx=10, pady=10)
 	Patente=tk.StringVar()
 	Cuadrat=tk.Entry(Pat, textvariable=Patente, justify="center", width=20).pack(ipadx=5,ipady=5,padx=10, pady=10)
-	Send_button=ttk.Button(Pat, text="Validar", command=lambda:Valida_pat(Op_menu), width=8).pack(ipadx=3,ipady=3,padx=10,pady=10)  #.place(relx=0.61, rely=0.13)
+	Send_button=ttk.Button(Pat, text="Validar", command=lambda:Valida_pat(Op_menu), width=8).pack(ipadx=3,ipady=3,padx=10,pady=10)
 	botonmenu=ttk.Button(Pat, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=10, pady=10)
 
 def Valida_pat(Op_menu):
@@ -159,17 +668,37 @@ def Valida_pat(Op_menu):
 	if(X=='V') or (X.isalnum()==True) and (len(X)==6) or (len(X)==7):
 		Unpack()
 		if(Op_menu=="Cupos"):
-			Cupos()
+			Cupos(X)
 		elif(Op_menu=="Recepcion"):
-			Recepcion()
+			cursor.execute(f'SELECT FECHA FROM CUPOS WHERE PATENTE="{X}" AND ESTADO="P"')
+			Fecha = cursor.fetchone()
+			if Fecha == None:
+				valor=messagebox.askquestion("Error", "La patente ingresada no tiene una recepción pendiente hoy!\n¿Desea recibir otro camión?")
+				if valor == 'yes':
+					Menu_Pat('Recepcion')
+				else:
+					Volver_Menu()
+			else:
+				now = datetime.now()
+				chars = "()',"
+				Fecha = ''.join( x for x in str(Fecha) if x not in chars)
+				if Fecha == f'{now.day}/{now.month}/{str(now.year)[2:]}':
+					cursor.execute(f'UPDATE CUPOS SET ESTADO="A" WHERE PATENTE="{X}" AND FECHA="{Fecha}"')
+					conn.commit()
+					valor=messagebox.askquestion("Recepción realizada", "¿Desea recibir otro camión?")
+					if valor == 'yes':
+						Menu_Pat('Recepcion')
+					else:
+						Volver_Menu()
+
 		elif(Op_menu=="Calidad"):
-			Calidad()
+			Calidad(X)
 		elif(Op_menu=="PBruto"):
-			PBruto()
+			PBruto(X)
 		elif(Op_menu=="Descarga"):
-			Descarga()
+			Descarga(X)
 		elif(Op_menu=="Tara"):
-			Tara()
+			Tara(X)
 
 	else:
 		valor=messagebox.askretrycancel("Patente inválida", "¿Desea intentarlo nuevamente?")
@@ -179,7 +708,7 @@ def Valida_pat(Op_menu):
 			Menu_p.pack(fill="both", expand=True)
 			Menu_p.pack_propagate(0)
 	
-def Cupos():
+def Cupos(Patente):
 	global Packed, Cup
 
 	Cup=tk.Frame(root)
@@ -188,21 +717,60 @@ def Cupos():
 	Cup.pack_propagate(0)
 	Packed="Cup"
 	Title=ttk.Label(Cup, text="ENTREGA DE CUPOS", font=("arial",20)).pack(padx=10, pady=10)
-	botonmenu=ttk.Button(Cup, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
-def Recepcion():
-	global Packed, Rec
+	ttk.Label(Cup, text="Ingrese la fecha para la cual quiere solicitar el cupo", font=("arial",12)).pack(padx=10)
 
-	Rec=tk.Frame(root)
-	Rec.pack(fill="both", expand=True)
-	Rec.config(width=800, height=500, padx=5, pady=5)
-	Rec.pack_propagate(0)
-	Packed="Rec"
-	Title=ttk.Label(Rec, text="RECEPCIÓN", font=("arial",20)).pack(padx=10, pady=10)
-	botonmenu=ttk.Button(Rec, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
-def Calidad():
-	global Packed, Cal
+	Cal = Calendar(Cup)
+	Cal.pack(pady=20)
+	Cal.config(headersbackground='#364c55', foreground='#000', background='#fff', headersforeground ='#fff')
+
+	ttk.Label(Cup, text="¿Qué producto cargará el camión?", font=("arial",12)).pack(padx=10)
+
+	# Lista prods
+
+	cursor.execute('SELECT NOMBRE_PRODUCTO FROM PRODUCTOS WHERE ESTADO="A"')
+	Productos_cargados = cursor.fetchall()
+
+	Listado = ttk.Combobox(
+		master=Cup,
+		state="readonly",
+		values=Productos_cargados
+		)
+	Listado.pack(padx=5, pady=15)
+
+	botonenviar = ttk.Button(Cup, text="Enviar", width=10, command=lambda:Crea_cupo(Patente,Cal.get_date(),Listado.get())).pack(padx=5, pady=15)
+
+	botonmenu=ttk.Button(Cup, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=10)
+
+def Crea_cupo(Patente,Fecha,Producto):
+
+	Fecha = Fecha.split('/') # Dar formato D-M-Y
+	Fecha = f'{Fecha[1]}/{Fecha[0]}/{Fecha[2]}'
+
+	cursor.execute(f'SELECT COD_PRODUCTO FROM PRODUCTOS WHERE NOMBRE_PRODUCTO="{Producto}"')
+	Cod_prod = cursor.fetchone()
+	chars = '(),'
+	Cod_prod = ''.join( x for x in str(Cod_prod) if x not in chars)
+	cursor.execute(f'SELECT * FROM CUPOS WHERE PATENTE="{Patente}" AND FECHA="{Fecha}"')
+	if cursor.fetchone() != None:
+		messagebox.showwarning("Error",f"La patente ingresada ya tiene cupo para el día {Fecha}!")
+	else:
+		cursor.execute(f'SELECT COD_SILO FROM SILOS WHERE COD_PROD="{Cod_prod}"')
+		Silo_existente = cursor.fetchone()
+		if Silo_existente == None:
+			messagebox.showwarning("Error","Primero debe creaer un silo para ese producto!")
+		else:
+			cursor.execute(f'INSERT INTO CUPOS VALUES(NULL,"{Patente}","{Cod_prod}","P","{Fecha}",0,0)')
+			conn.commit()
+			valor=messagebox.askquestion("Asignación correcta", "¿Desea crear otro cupo?")
+			if valor == 'yes':
+				Menu_Pat('Cupos')
+			else:
+				Volver_Menu()
+
+def Calidad(Patente):
+	global Packed, Cal, Frame_boolean, cont_rubros, rubro, rubros, Frame_Rubros
 
 	Cal=tk.Frame(root)
 	Cal.pack(fill="both", expand=True)
@@ -210,9 +778,93 @@ def Calidad():
 	Cal.pack_propagate(0)
 	Packed="Cal"
 	Title=ttk.Label(Cal, text="REGISTRAR CALIDAD", font=("arial",20)).pack(padx=10, pady=10)
-	botonmenu=ttk.Button(Cal, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
+	cursor.execute(f'SELECT COD_PROD FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="A"')
+	Cod_prod = cursor.fetchone()
+	if Cod_prod == None:
+		valor=messagebox.askquestion("Error", "La patente ingresada no tiene que verificar calidad hoy!\n¿Desea recibir otro camión?")
+		if valor == 'yes':
+			Menu_Pat('Calidad')
+		else:
+			Volver_Menu()
+	else:
+		chars = "(),'"
+		Cod_prod = ''.join( x for x in str(Cod_prod) if x not in chars)
+		cursor.execute(f'SELECT * FROM RUBROS_ASIGNADOS WHERE COD_PROD={Cod_prod} ')
+		Rubros_por_validar = cursor.fetchall()
+		Frame_Rubros = tk.Frame(Cal)
+		Frame_Rubros.pack(side='bottom',expand=True,fill='both')
+		rubros = Listar_rubros(Rubros_por_validar)
+		cont_rubros = 0
+		Validar_rubro('',Patente)
+		cursor.execute(f'SELECT FECHA FROM CUPOS WHERE PATENTE="{Patente}" AND ESTADO="P"')
+		Fecha = cursor.fetchone()
+		botonmenu=ttk.Button(Frame_Rubros, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5,side='bottom')
 		
-def PBruto():
+def Validar_rubro(subpacked,Patente,Valor=0,Eleccion=0):
+	global cont_rubros, Frame_boolean
+
+	if Eleccion!='':
+		if subpacked == 'Boolean':
+			Frame_boolean.destroy()
+			if Valor != Eleccion:
+				cont_rubros += 1
+		elif subpacked == 'Numeric':
+			Frame_num.destroy()
+			# Comprobación de valores
+			Eleccion.split('-')
+			if int(Valor)<int(Eleccion[0]) or int(Valor)>int(Eleccion[1]):
+				cont_rubros+=1
+		chars = "(),'"
+		try:
+			rubro = next(rubros)
+			cursor.execute(f'SELECT NOMBRE_RUBRO FROM RUBROS WHERE COD_RUBRO={rubro[0]}')
+			nombrerubro = cursor.fetchone()
+			nombrerubro = ''.join( x for x in str(nombrerubro) if x not in chars)
+			if rubro[2] == 'Boolean':
+				subpacked = 'Boolean'
+				elec = tk.StringVar()
+				Frame_boolean = tk.Frame(Frame_Rubros)
+				Frame_boolean.pack()
+				ttk.Label(Frame_boolean, text=f"El producto sufrió el rubro {nombrerubro}?", font=("arial",14)).pack(padx=10, pady=10)
+				ttk.Radiobutton(Frame_boolean, text="Sí", variable=elec, value='True').pack(padx=5)
+				ttk.Radiobutton(Frame_boolean, text="No", variable=elec, value='False').pack(padx=5)
+				botonenviar=ttk.Button(Frame_boolean, text="Enviar", width=10, command=lambda:Validar_rubro(subpacked,Patente,rubro[3],elec.get()))
+				botonenviar.pack(padx=5, pady=5)	
+			elif rubro[2] == 'Numeric':
+				subpacked = 'Numeric'
+				Valor = tk.IntVar()
+				Frame_num = tk.Frame(Frame_Rubros)
+				Frame_num.pack()
+				ttk.Label(Frame_num, text=f"Ingrese el valor del rubro {nombrerubro}", font=("arial",14)).pack(padx=10, pady=10)
+				ttk.Label(Frame_num, text="Valor: ", font=("arial",10)).pack(padx=10, pady=10, side='left', anchor='e')
+				ttk.Entry(Frame_num,textvariable=Valor).pack(padx=10, pady=10,side='right', anchor='w')
+
+
+				botonenviar=ttk.Button(Frame_num, text="Enviar", width=10, command=lambda:Validar_rubro(subpacked,Patente,rubro[3],Valor.get()))
+				botonenviar.pack(padx=5, pady=5)	
+		except:
+			if cont_rubros>1:
+				messagebox.showwarning("Aviso importante","El producto no pasó el control de calidad!\nSe marcará la carga como rechazada.")
+				cursor.execute(f'UPDATE CUPOS SET ESTADO="R" WHERE PATENTE="{Patente}" AND ESTADO="A"')
+			else:
+				messagebox.showinfo("Control correcto", "La carga pasó el control de calidad!")
+				cursor.execute(f'UPDATE CUPOS SET ESTADO="C" WHERE PATENTE="{Patente}" AND ESTADO="A"')
+			conn.commit()
+			valor=messagebox.askquestion("Calidad controlada", "¿Desea controlar la calidad de otra carga?")
+			if valor == 'yes':
+				Menu_Pat('Calidad')
+			else:
+				Volver_Menu()
+	else:
+		messagebox.showwarning("Error","Selecciona una opción!")
+
+
+def Listar_rubros(Lista_rubros):
+	for rubro in Lista_rubros:
+		yield rubro
+
+
+def PBruto(Patente):
 	global Packed, PBru
 
 	PBru=tk.Frame(root)
@@ -223,7 +875,7 @@ def PBruto():
 	Title=ttk.Label(PBru, text="REGISTRAR PESO BRUTO", font=("arial",20)).pack(padx=10, pady=10)
 	botonmenu=ttk.Button(PBru, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 
-def Descarga():
+def Descarga(Patente):
 	global Packed, Des
 
 	Des=tk.Frame(root)
@@ -234,7 +886,7 @@ def Descarga():
 	Title=ttk.Label(Des, text="REGISTRAR DESCARGA", font=("arial",20)).pack(padx=10, pady=10)
 	botonmenu=ttk.Button(Des, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
 		
-def Tara():
+def Tara(Patente):
 	global Packed, Tar
 
 	Tar=tk.Frame(root)
@@ -257,13 +909,15 @@ def Reportes():
 	Rep.pack_propagate(0)
 	Packed="Rep"
 	Title=ttk.Label(Rep, text="REPORTES", font=("arial",20)).pack(padx=10, pady=10)
-	ImagenPatMenor=tk.PhotoImage(file="PatenteMenor.png")
-	MarcoPatMenor= ttk.Label(Rep, image=ImagenPatMenor).pack(padx=5, pady=5)
+
+	PatMenorImg = Image.open("PatenteMenor.png")
+	PatMenorImg = PatMenorImg.resize((250,83), Image.Resampling.LANCZOS)
+	PatMenor = ImageTk.PhotoImage(PatMenorImg)
+	MarcoPatMenor= ttk.Label(Rep, image=PatMenor)
+	MarcoPatMenor.image = PatMenor
+	MarcoPatMenor.pack(padx=5, pady=5)
+	
 	botonmenu=ttk.Button(Rep, text="VOLVER AL MENÚ PRINCIPAL", width=29, command=Volver_Menu).pack(padx=5, pady=5)
-
-
-def Listado():
-	pass
 
 def Download(pat, name):
 
@@ -275,20 +929,22 @@ def Download(pat, name):
 
 def Notificacion():
 
-	Mantenimiento = Notify(default_notification_icon="code.ico")
+	Mantenimiento = Notify(default_notification_icon="trigo.ico")
 	Mantenimiento.title = "Función en construcción!"
 	Mantenimiento.message = "Por favor intente nuevamente con otra opcion."
-	Mantenimiento.send()
+	Mantenimiento.send(block=False)
 
 def main_window():
-	global root
+	global root, Rutabbdd
 	root = tk.Tk()
 	root.config(width=800, height=500, padx=5, pady=5)
 	root.title("Sistema de gestión para cerealeras")
-	root.iconbitmap("code.ico")
+	root.iconbitmap("trigo.ico")
 	#root.resizable(0,0)
 	img = tk.PhotoImage(file="Fondo.png")
 	style = darkstyle(root)
+	Rutabbdd = 'D:\Archivos_tp_GUI\Database.db'
+	conn_bbdd()
 	Menu()
 	root.mainloop()
 
