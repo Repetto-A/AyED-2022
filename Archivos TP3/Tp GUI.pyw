@@ -20,6 +20,69 @@ def darkstyle(root):
     style.configure("Accentttk.Button", foreground='white')
     style.configure("Togglettk.Button", foreground='white')
     return style
+# - Animacion de carga - #
+
+w=Tk()
+width_of_window = 427
+height_of_window = 250
+screen_width = w.winfo_screenwidth()
+screen_height = w.winfo_screenheight()
+x_coordinate = (screen_width/2)-(width_of_window/2)
+y_coordinate = (screen_height/2)-(height_of_window/2)
+w.geometry("%dx%d+%d+%d" %(width_of_window,height_of_window,x_coordinate,y_coordinate))
+w.overrideredirect(1)
+	
+Frame(w, width=427, height=250, bg='#f5f2f2').place(x=0,y=0)
+label1=Label(w, text='Cargando', fg='#272727', bg='#f5f2f2') 
+label1.configure(font=("Game Of Squids", 24, "bold"))   
+label1.place(x=140,y=90)
+
+label2=Label(w, text='Loading...', fg='#272727', bg='#f5f2f2') 
+label2.configure(font=("Calibri", 11))
+label2.place(x=10,y=215)
+
+image_a=ImageTk.PhotoImage(Image.open('c2.png'))
+image_b=ImageTk.PhotoImage(Image.open('c1.png'))
+
+    
+for i in range(3): #3 loops
+    l1=Label(w, image=image_a, border=0, relief=SUNKEN).place(x=180, y=145)
+    l2=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=200, y=145)
+    l3=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=220, y=145)
+    l4=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=240, y=145)
+    label2=Label(w, text='Cargando silos...                ', fg='#272727', bg='#f5f2f2').place(x=10,y=215)
+    w.update_idletasks()
+    time.sleep(0.9)
+
+    l1=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=180, y=145)
+    l2=Label(w, image=image_a, border=0, relief=SUNKEN).place(x=200, y=145)
+    l3=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=220, y=145)
+    l4=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=240, y=145)
+    label2=Label(w, text='Agendando Cupos...        ', fg='#272727', bg='#f5f2f2').place(x=10,y=215)
+    w.update_idletasks()
+    time.sleep(0.9)
+
+    l1=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=180, y=145)
+    l2=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=200, y=145)
+    l3=Label(w, image=image_a, border=0, relief=SUNKEN).place(x=220, y=145)
+    l4=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=240, y=145)
+    label2=Label(w, text='Descargando Camiones...', fg='#272727', bg='#f5f2f2').place(x=10,y=215)
+    w.update_idletasks()
+    time.sleep(0.9)
+
+    l1=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=180, y=145)
+    l2=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=200, y=145)
+    l3=Label(w, image=image_b, border=0, relief=SUNKEN).place(x=220, y=145)
+    l4=Label(w, image=image_a, border=0, relief=SUNKEN).place(x=240, y=145)
+    label2=Label(w, text='Registrando Productos...     ', fg='#272727', bg='#f5f2f2').place(x=10,y=215)
+    w.update_idletasks()
+    time.sleep(0.9)
+    
+label2=Label(w, text='Iniciando Programa...     ', fg='#272727', bg='#f5f2f2').place(x=10,y=215)
+w.update_idletasks()
+time.sleep(0.9)
+
+# - #
 
 def conn_bbdd():
 	global conn, cursor
@@ -1143,11 +1206,11 @@ def main_window():
 	root.iconbitmap("trigo.ico")
 	#root.resizable(0,0)
 	img = tk.PhotoImage(file="Fondo.png")
-	style = darkstyle(root)
+	#style = darkstyle(root)
 	Rutabbdd = 'D:\Archivos_tp_GUI\Database.db'
 	conn_bbdd()
 	Menu()
 	root.mainloop()
 
-
+w.destroy()
 main_window()
